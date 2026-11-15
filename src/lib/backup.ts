@@ -60,6 +60,10 @@ export interface RispostaDrive {
   email?: string;
   file?: string;
   errore?: string;
+  versione?: number;
+  contenuto?: string;
+  aggiornato?: number;
+  conflitto?: boolean;
 }
 
 /** Chiamata allo script Google (testo semplice: niente richiesta preliminare CORS). */
@@ -107,18 +111,22 @@ export function avvisoEmail(attesa: string | undefined, effettiva: string | unde
  * Codice da incollare su script.google.com (account Google del salone).
  * Righe corte (max 60 caratteri), commenti senza apostrofi e testi brevi:
  * così resta valido anche se e-mail o WhatsApp mandano a capo le righe lunghe.
+ * Versione 2: oltre ai backup, legge e scrive il file condiviso tra i dispositivi.
  */
-export const codiceScript = (chiave: string) => `// Backup app salone su Google Drive.
+export const VERSIONE_SCRIPT = 2;
+export const codiceScript = (chiave: string) => `// App salone: backup e dati condivisi su Drive.
 // Pubblicare come App web:
 // Esegui come Me, accesso Chiunque.
 var CHIAVE = '${chiave}';
 var CARTELLA = 'Backup Salone';
+var CONDIVISO = 'salone-sync.json';
+var VERSIONE = 2;
 
 function doPost(e) {
   try {
     var req = JSON.parse(e.postData.contents);
     if (req.chiave !== CHIAVE) {
-      var no = { ok: false };
+      var no = { ok: false, versione: VERSIONE };
       no.errore = 'Chiave non valida';
       return risposta(no);
     }
@@ -126,9 +134,11 @@ function doPost(e) {
     if (req.azione === 'verifica') {
       return risposta({ ok: true, email: email });
     }
-    var it = DriveApp.getFoldersByName(CARTELLA);
-    var cartella = it.hasNext() ? it.next()
-      : DriveApp.createFolder(CARTELLA);
+    var cartella = trovaCartella();
+    if (req.azione === 'leggi') return leggi(cartella);
+    if (req.azione === 'scrivi') {
+      return scrivi(cartella, req);
+    }
     var file = cartella.createFile(
       req.nome, req.contenuto, 'application/json');
     var conserva = Number(req.conserva) || 30;
@@ -154,7 +164,50 @@ function doPost(e) {
   }
 }
 
+function trovaCartella() {
+  var it = DriveApp.getFoldersByName(CARTELLA);
+  if (it.hasNext()) return it.next();
+  return DriveApp.createFolder(CARTELLA);
+}
+
+function trovaCondiviso(cartella) {
+  var it = cartella.getFilesByName(CONDIVISO);
+  return it.hasNext() ? it.next() : null;
+}
+
+function leggi(cartella) {
+  var f = trovaCondiviso(cartella);
+  if (!f) {
+    return risposta({ ok: true, contenuto: '',
+      aggiornato: 0 });
+  }
+  return risposta({ ok: true,
+    contenuto: f.getBlob().getDataAsString(),
+    aggiornato: f.getLastUpdated().getTime() });
+}
+
+function scrivi(cartella, req) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var f = trovaCondiviso(cartella);
+    var ora = f ? f.getLastUpdated().getTime() : 0;
+    if (Number(req.base) !== ora) {
+      return risposta({ ok: true, conflitto: true,
+        aggiornato: ora });
+    }
+    if (f) f.setContent(req.contenuto);
+    else f = cartella.createFile(
+      CONDIVISO, req.contenuto, 'application/json');
+    return risposta({ ok: true,
+      aggiornato: f.getLastUpdated().getTime() });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function risposta(o) {
+  o.versione = VERSIONE;
   var out = ContentService.createTextOutput(
     JSON.stringify(o));
   return out.setMimeType(ContentService.MimeType.JSON);
@@ -168,3 +221,23 @@ function autorizza() {
   Logger.log(Session.getEffectiveUser().getEmail());
 }
 `;
+
+/** Legge il file condiviso tra i dispositivi (contenuto vuoto se non esiste ancora). */
+export async function leggiCondiviso(url: string, chiave: string) {
+  const r = await chiamaScript(url, { chiave, azione: 'leggi' });
+  if (r.versione !== VERSIONE_SCRIPT) throw new Error(SCRIPT_DA_AGGIORNARE);
+  return { contenuto: r.contenuto ?? '', aggiornato: Number(r.aggiornato) || 0 };
+}
+
+/**
+ * Scrive il file condiviso solo se nessun altro dispositivo l'ha cambiato dopo la lettura (`base`).
+ * Restituisce null in caso di conflitto: allora si rilegge, si unisce e si riprova.
+ */
+export async function scriviCondiviso(url: string, chiave: string, contenuto: string, base: number) {
+  const r = await chiamaScript(url, { chiave, azione: 'scrivi', contenuto, base });
+  if (r.versione !== VERSIONE_SCRIPT) throw new Error(SCRIPT_DA_AGGIORNARE);
+  return r.conflitto ? null : Number(r.aggiornato) || 0;
+}
+
+export const SCRIPT_DA_AGGIORNARE =
+  'Lo script su Google va aggiornato per condividere i dati: ricopia il codice da Altro e pubblica una nuova versione (vedi istruzioni).';

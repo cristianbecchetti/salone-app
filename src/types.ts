@@ -167,6 +167,16 @@ export interface Impostazioni {
   fasceOrarie?: { nome: string; da: number; a: number }[];
   /** pagina Reminder: mostra tutti, oppure solo gli appuntamenti di almeno / meno di N minuti */
   reminderFiltro?: { verso: 'tutti' | 'almeno' | 'meno'; minuti: number };
+  /** questo dispositivo condivide i dati con gli altri tramite il file su Google Drive */
+  syncAttiva?: boolean;
+  /** ultima sincronizzazione riuscita (ISO) */
+  syncUltima?: string;
+  /** ultimo errore di sincronizzazione (vuoto se tutto ok) */
+  syncErrore?: string;
+  /** dispositivo appena collegato: alla prima sincronizzazione prende tutto dal file condiviso */
+  syncSostituisci?: boolean;
+  /** dopo un ripristino da file: i dati di questo dispositivo diventano quelli di tutti */
+  syncForzaInvio?: boolean;
   /** moltiplicatore della dimensione di testo e controlli (1 = normale) */
   scalaTesto?: number;
   passo: number;

@@ -6,6 +6,8 @@ import { avvisoEmail, codiceScript, driveConfigurato, verificaDrive } from '../l
 import type { Impostazioni as Imp } from '../types';
 import { PAESI, bandiera, componiMessaggio } from '../lib/contatti';
 import { Telefono } from '../scelte';
+import { linkCollegamento, sincronizza } from '../sincronizza';
+import { soloDispositivo, type Record_ } from '../lib/sincronia';
 import { dataLunga, oggi, piuGiorni } from '../lib/tempo';
 import { Campo } from '../ui';
 import { TEMPLATE_PREDEFINITI, TESTI_TEMPLATE, inviaTemplate, mancaConfigurazione, type TipoMessaggio } from '../lib/whatsapp';
@@ -46,6 +48,10 @@ export default function Impostazioni() {
   // ---- backup su Google Drive ----
   const drive = imp.backupModo === 'drive';
   const [vediChiave, setVediChiave] = useState(false);
+  // condivisione dei dati tra dispositivi
+  const [occupatoSync, setOccupatoSync] = useState(false);
+  const [link, setLink] = useState('');
+  const [msgLink, setMsgLink] = useState('');
   const [esitoDrive, setEsitoDrive] = useState('');
   const [occupatoDrive, setOccupatoDrive] = useState(false);
   async function operazioneDrive(fn: () => Promise<string>) {
@@ -86,9 +92,14 @@ export default function Impostazioni() {
     if (!f) return;
     try {
       const backup = JSON.parse(await f.text());
-      if (confirm('Ripristinare il backup? Tutti i dati attuali di questa app verranno sostituiti.')) {
+      const condivisi = imp.syncAttiva ? ' anche su tutti i dispositivi collegati' : '';
+      if (confirm(`Ripristinare il backup? Tutti i dati attuali verranno sostituiti${condivisi}.`)) {
+        // le impostazioni di questo dispositivo (Drive, sincronizzazione, token…) restano quelle di prima
+        const proprie = soloDispositivo((await db.impostazioni.get('main')) as Record_ | undefined);
         await ripristina(backup);
-        setMsg('Backup ripristinato.');
+        await db.impostazioni.update('main', { ...proprie, ...(proprie.syncAttiva ? { syncForzaInvio: true } : {}) });
+        if (proprie.syncAttiva) await sincronizza();
+        setMsg(proprie.syncAttiva ? 'Backup ripristinato e inviato agli altri dispositivi.' : 'Backup ripristinato.');
       }
     } catch (err) {
       setMsg(err instanceof Error ? err.message : 'File non valido.');
@@ -386,6 +397,94 @@ export default function Impostazioni() {
               ? '✓ Archivio protetto: Android non cancellerà i dati per liberare spazio.'
               : 'Archivio non ancora protetto: installa l\'app nella schermata Home per rendere i dati permanenti.'}
           </p>
+        )}
+      </section>
+
+      <section className="scheda">
+        <h3>Stessi dati su più dispositivi</h3>
+        <p className="tenue">
+          Tablet, telefono e PC possono usare la stessa agenda, gli stessi clienti e le stesse impostazioni del salone. I dati passano da un
+          file nella cartella "Backup Salone" del Google Drive collegato qui sopra; le modifiche arrivano sugli altri dispositivi entro un
+          paio di minuti (serve internet).
+        </p>
+        {!imp.driveUrl || !imp.driveChiave ? (
+          <p className="avviso">Prima collega Google Drive nella sezione Backup qui sopra (indirizzo dello script e chiave).</p>
+        ) : (
+          <>
+            <label className="spunta">
+              <input
+                type="checkbox"
+                checked={!!imp.syncAttiva}
+                onChange={async (e) => {
+                  await salva({ syncAttiva: e.target.checked, syncErrore: '' });
+                  if (e.target.checked) void sincronizza();
+                }}
+              />
+              Condividi i dati di questo dispositivo con gli altri
+            </label>
+            {imp.syncAttiva && (
+              <>
+                <p className={imp.syncErrore ? 'avviso' : 'tenue'}>
+                  {imp.syncErrore
+                    ? `Ultima sincronizzazione non riuscita: ${imp.syncErrore}`
+                    : `Ultima sincronizzazione: ${quando(imp.syncUltima)}`}
+                </p>
+                <div className="riga a-capo">
+                  <button
+                    disabled={occupatoSync}
+                    onClick={async () => {
+                      setOccupatoSync(true);
+                      await sincronizza();
+                      setOccupatoSync(false);
+                    }}
+                  >
+                    {occupatoSync ? 'Sincronizzazione…' : 'Sincronizza ora'}
+                  </button>
+                  <button onClick={() => setLink(linkCollegamento(imp, location.origin + location.pathname))}>Collega un altro dispositivo</button>
+                </div>
+                {link && (
+                  <div className="link-collega">
+                    <p>
+                      Apri questo link sull'altro dispositivo (con Chrome), installa l'app da lì e conferma il collegamento. Mandalo a te stesso
+                      con WhatsApp o e-mail:
+                    </p>
+                    <input readOnly value={link} aria-label="Link di collegamento" onFocus={(e) => e.target.select()} />
+                    <div className="riga a-capo">
+                      <button
+                        className="primario"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(link);
+                            setMsgLink('✓ Link copiato.');
+                          } catch {
+                            setMsgLink('Copia non riuscita: tieni premuto sul link e copialo.');
+                          }
+                        }}
+                      >
+                        Copia link
+                      </button>
+                      {typeof navigator.share === 'function' && (
+                        <button onClick={() => navigator.share({ title: 'Collega app salone', text: link }).catch(() => {})}>Condividi…</button>
+                      )}
+                      <button onClick={() => setLink('')}>Chiudi</button>
+                    </div>
+                    {msgLink && <p className="nota">{msgLink}</p>}
+                    <p className="tenue">
+                      Il link contiene la chiave segreta del collegamento a Drive: mandalo solo a te stesso o a chi lavora nel salone.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+            <details className="istruzioni">
+              <summary>Prima volta: aggiorna lo script su Google</summary>
+              <p className="tenue">
+                Per condividere i dati lo script su Google deve essere la versione nuova. Una sola volta: tocca "Copia il codice dello script"
+                nella sezione Backup, incollalo su script.google.com al posto del vecchio, salva e poi <b>Esegui il deployment → Gestisci
+                deployment → ✏️ Modifica → Versione: Nuova versione → Esegui il deployment</b>. L'indirizzo resta lo stesso.
+              </p>
+            </details>
+          </>
         )}
       </section>
     </div>

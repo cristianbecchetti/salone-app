@@ -14,6 +14,9 @@ import Reminder from './pages/Reminder';
 import Impostazioni from './pages/Impostazioni';
 import Colori from './pages/Colori';
 import BackupAutomatico from './BackupAutomatico';
+import { CONTROLLO_OGNI, collegaDispositivo, leggiCollegamento, sincronizza } from './sincronizza';
+import { Modale } from './ui';
+import { hm } from './lib/tempo';
 
 type Pagina = 'agenda' | 'reminder' | 'colori' | 'clienti' | 'servizi' | 'personale' | 'orari' | 'impostazioni';
 export type Rotta = { p: Pagina } | { p: 'prenota'; id?: number; pre?: Pre };
@@ -32,6 +35,10 @@ const VOCI: [Pagina, string, string][] = [
 export default function App() {
   const [rotta, setRotta] = useState<Rotta>({ p: 'agenda' });
   const [magazzino, setMagazzino] = useState(location.hash === '#magazzino');
+  // link "#collega=…" aperto su un nuovo dispositivo: propone di collegarlo ai dati del salone
+  const [collega, setCollega] = useState(() => leggiCollegamento(location.hash));
+  const [esitoCollega, setEsitoCollega] = useState('');
+  const togliHash = () => history.replaceState(null, '', location.pathname + location.search);
   useEffect(() => {
     const cambio = () => setMagazzino(location.hash === '#magazzino');
     window.addEventListener('hashchange', cambio);
@@ -62,6 +69,22 @@ export default function App() {
     navigator.storage?.persist?.().catch(() => {});
   }, []);
 
+  // stessi dati su più dispositivi: all'avvio, ogni 2 minuti, al ritorno in primo piano e quando torna la rete
+  useEffect(() => {
+    if (!imp.syncAttiva) return;
+    const vai = () => void sincronizza();
+    const visibile = () => document.visibilityState === 'visible' && vai();
+    vai();
+    const t = setInterval(vai, CONTROLLO_OGNI);
+    document.addEventListener('visibilitychange', visibile);
+    window.addEventListener('online', vai);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', visibile);
+      window.removeEventListener('online', vai);
+    };
+  }, [imp.syncAttiva]);
+
   // vista dedicata alla postazione del magazzino: solo la preparazione colori, a tutto schermo
   if (magazzino)
     return (
@@ -74,7 +97,18 @@ export default function App() {
   return (
     <div className="app">
       <nav className="menu">
-        <div className="marchio">{imp.nomeSalone}</div>
+        <div className="marchio">
+          {imp.nomeSalone}
+          {imp.syncAttiva && (
+            <span className={`sync-stato${imp.syncErrore ? ' errore' : ''}`} title={imp.syncErrore || 'Dati condivisi con gli altri dispositivi'}>
+              {imp.syncErrore
+                ? '⚠ non sincronizzato'
+                : imp.syncUltima
+                  ? `☁ ${hm(new Date(imp.syncUltima).getHours() * 60 + new Date(imp.syncUltima).getMinutes())}`
+                  : '☁ …'}
+            </span>
+          )}
+        </div>
         {VOCI.map(([p, nome, icona]) => (
           <button key={p} className={attiva === p ? 'attiva' : ''} onClick={() => setRotta({ p })}>
             <span className="ico">{icona}</span>
@@ -106,6 +140,48 @@ export default function App() {
       </main>
       {/* backup automatico su Drive e promemoria del backup manuale */}
       <BackupAutomatico />
+      {collega && (
+        <Modale
+          titolo="Collegare questo dispositivo?"
+          onChiudi={() => {
+            setCollega(null);
+            togliHash();
+          }}
+          azioni={
+            <>
+              <button
+                onClick={() => {
+                  setCollega(null);
+                  togliHash();
+                }}
+              >
+                Annulla
+              </button>
+              <span className="spazio" />
+              <button
+                className="primario"
+                disabled={esitoCollega === 'invio'}
+                onClick={async () => {
+                  setEsitoCollega('invio');
+                  await collegaDispositivo(collega);
+                  togliHash();
+                  setCollega(null);
+                  setEsitoCollega('');
+                }}
+              >
+                {esitoCollega === 'invio' ? 'Collegamento…' : 'Collega e scarica i dati'}
+              </button>
+            </>
+          }
+        >
+          <p>
+            Questo dispositivo userà gli stessi dati del salone (agenda, clienti, servizi, personale, orari) salvati su Google Drive
+            {collega.e ? ` di ${collega.e}` : ''}.
+          </p>
+          <p className="avviso">I dati presenti ora su questo dispositivo verranno sostituiti da quelli condivisi.</p>
+          <p className="tenue">Dopo il collegamento le modifiche fatte qui o sugli altri dispositivi arrivano ovunque entro un paio di minuti.</p>
+        </Modale>
+      )}
     </div>
   );
 }

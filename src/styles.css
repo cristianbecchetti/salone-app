@@ -364,3 +364,9 @@ button.grande { white-space: normal; text-align: center; line-height: 1.2; }
 .telefono .paese-scelta { position: absolute; inset: 0; width: 100%; min-width: 0; height: 100%; opacity: 0; cursor: pointer; flex: none; }
 .telefono .paese:focus-within .paese-vista { outline: 2px solid var(--accento); outline-offset: 2px; }
 .telefono input { flex: 1 1 auto; min-width: 0; width: 100%; }
+
+/* condivisione tra dispositivi */
+.sync-stato { display: block; font-size: 0.7rem; font-weight: 400; opacity: 0.85; margin-top: 0.2rem; }
+.sync-stato.errore { color: #ffd166; opacity: 1; }
+.link-collega { border: 1px solid var(--bordo); border-radius: var(--raggio); padding: 0.6rem 0.8rem; margin-top: 0.6rem; }
+.link-collega input { width: 100%; font-size: 0.8rem; }

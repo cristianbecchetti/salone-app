@@ -112,6 +112,8 @@ async function skillInUso(servizi: Table<Servizio>, operatori: Table<Operatore>)
 class SaloneDB extends Dexie {
   skill!: Table<Skill, number>;
   schede!: Table<SchedaColore, number>;
+  /** record eliminati ('tabella:chiave' → ms), per toglierli anche dagli altri dispositivi */
+  eliminati!: Table<{ chiave: string; il: number }, string>;
   clienti!: Table<Cliente, number>;
   servizi!: Table<Servizio, number>;
   operatori!: Table<Operatore, number>;
@@ -164,6 +166,8 @@ class SaloneDB extends Dexie {
         await tx.table('skill').bulkAdd(nomi.map((nome) => ({ nome })));
       });
     // v4: schede colore dei clienti; i servizi di colore vanno nella pagina Preparazione colori.
+    // v5: elenco delle eliminazioni, usato per condividere i dati tra dispositivi
+    this.version(5).stores({ eliminati: 'chiave' });
     this.version(4)
       .stores({ schede: '++id, clientId, data, appuntamentoId' })
       .upgrade(async (tx) => {
