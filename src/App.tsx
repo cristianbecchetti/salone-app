@@ -12,6 +12,7 @@ import Orari from './pages/Orari';
 import Reminder from './pages/Reminder';
 import Impostazioni from './pages/Impostazioni';
 import Colori from './pages/Colori';
+import BackupAutomatico from './BackupAutomatico';
 
 type Pagina = 'agenda' | 'reminder' | 'colori' | 'clienti' | 'servizi' | 'personale' | 'orari' | 'impostazioni';
 export type Rotta = { p: Pagina } | { p: 'prenota'; id?: number; pre?: Pre };
@@ -102,6 +103,8 @@ export default function App() {
         {rotta.p === 'colori' && <Colori />}
         {rotta.p === 'impostazioni' && <Impostazioni />}
       </main>
+      {/* backup automatico su Drive e promemoria del backup manuale */}
+      <BackupAutomatico />
     </div>
   );
 }

@@ -140,6 +140,29 @@ export interface Impostazioni {
   waLingua?: string;
   /** Cloud API: nome del template approvato per ogni tipo di messaggio */
   waTemplate?: Partial<Record<'reminder' | 'conferma' | 'mese' | 'magazzino', string>>;
+  /** 'manuale' = backup su file con promemoria; 'drive' = backup automatico su Google Drive */
+  backupModo?: 'manuale' | 'drive';
+  /** Drive: ogni quanti giorni fare il backup automatico */
+  backupOgniGiorni?: number;
+  /** manuale: ogni quanti giorni mostrare il promemoria (0 = mai) */
+  promemoriaBackupGiorni?: number;
+  /** promemoria rinviato fino a questo momento (ISO) */
+  promemoriaRinviatoA?: string;
+  /** ultimo backup fatto, manuale o automatico (ISO) */
+  ultimoBackup?: string;
+  /** Drive: account Google del salone (per controllo) */
+  driveEmail?: string;
+  /** Drive: indirizzo dell'app web dello script Google */
+  driveUrl?: string;
+  /** Drive: chiave condivisa con lo script. Resta su questo dispositivo, esclusa dai backup. */
+  driveChiave?: string;
+  /** Drive: quanti backup tenere nella cartella */
+  driveConserva?: number;
+  driveUltimoBackup?: string;
+  driveUltimoTentativo?: string;
+  driveUltimoFile?: string;
+  /** Drive: ultimo errore (vuoto se l'ultimo tentativo è riuscito) */
+  driveErrore?: string;
   /** moltiplicatore della dimensione di testo e controlli (1 = normale) */
   scalaTesto?: number;
   passo: number;
