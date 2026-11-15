@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from '../db';
 import type { Eccezione, Fascia } from '../types';
 import { GIORNI, ORDINE_GIORNI, dataLunga, hm, oggi } from '../lib/tempo';
-import { Campo, FasceEditor, Modale } from '../ui';
+import { Campo, FasceEditor, Modale, Ora } from '../ui';
 import { SceltaData } from '../scelte';
 
 export default function Orari() {
@@ -12,6 +12,8 @@ export default function Orari() {
   const [e, setE] = useState<(Eccezione & { nuova?: boolean }) | null>(null);
   const [passate, setPassate] = useState(false);
 
+  const fasce = imp.fasceOrarie ?? [];
+  const salvaFasce = (f: { nome: string; da: number; a: number }[]) => db.impostazioni.update('main', { fasceOrarie: f });
   const setGiorno = (g: number, fasce: Fascia[]) =>
     db.impostazioni.put({ ...imp, settimana: imp.settimana.map((x, i) => (i === g ? fasce : x)) });
 
@@ -37,6 +39,34 @@ export default function Orari() {
             <FasceEditor fasce={imp.settimana[g] ?? []} onChange={(f) => setGiorno(g, f)} />
           </div>
         ))}
+      </section>
+
+      <section className="scheda">
+        <h3>Fasce orarie per la prenotazione</h3>
+        <p className="tenue">
+          In "Nuovo appuntamento" si possono scegliere una o più fasce per vedere solo gli orari che iniziano lì dentro (es. il cliente
+          può solo la sera) e trovare il primo disponibile.
+        </p>
+        {fasce.map((f, i) => (
+          <div className="riga a-capo giorno-riga" key={i}>
+            <input
+              className="nome-fascia"
+              aria-label={`Nome della fascia ${i + 1}`}
+              value={f.nome}
+              placeholder="Nome (es. Mattina)"
+              onChange={(e) => salvaFasce(fasce.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x)))}
+            />
+            <span>dalle</span>
+            <Ora valore={f.da} label={`Inizio ${f.nome}`} onChange={(da) => salvaFasce(fasce.map((x, j) => (j === i ? { ...x, da } : x)))} />
+            <span>alle</span>
+            <Ora valore={f.a} label={`Fine ${f.nome}`} onChange={(a) => salvaFasce(fasce.map((x, j) => (j === i ? { ...x, a } : x)))} />
+            {f.a <= f.da && <span className="etichetta gialla">la fine deve essere dopo l'inizio</span>}
+            <button className="icona" aria-label={`Rimuovi la fascia ${f.nome}`} onClick={() => salvaFasce(fasce.filter((_, j) => j !== i))}>
+              ✕
+            </button>
+          </div>
+        ))}
+        <button onClick={() => salvaFasce([...fasce, { nome: `Fascia ${fasce.length + 1}`, da: 9 * 60, a: 12 * 60 }])}>+ Fascia oraria</button>
       </section>
 
       <section className="scheda">

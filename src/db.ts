@@ -19,6 +19,11 @@ export const IMPOSTAZIONI_BASE: Impostazioni = {
   numeroMagazzino: '',
   scalaTesto: 1.2,
   reminderFiltro: { verso: 'almeno', minuti: 60 },
+  fasceOrarie: [
+    { nome: 'Mattina', da: h(9), a: h(13) },
+    { nome: 'Pomeriggio', da: h(13), a: h(17) },
+    { nome: 'Sera', da: h(17), a: h(21) },
+  ],
   backupModo: 'manuale',
   backupOgniGiorni: 1,
   promemoriaBackupGiorni: 7,

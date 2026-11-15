@@ -4,6 +4,8 @@ import {
   fasceSalone,
   impegniDa,
   intersezione,
+  nelleFasce,
+  primoSlot,
   prossimaApertura,
   trovaSlot,
   turnoOperatore,
@@ -206,5 +208,31 @@ describe('verifica (avvisi non bloccanti)', () => {
 
     const nessuno = verifica({ data: '2026-11-17', fasi: fasi(h(9), null), salone, operatori: [op(1)], impegni: [] });
     expect(nessuno.join(' ')).toMatch(/Nessun operatore/);
+  });
+});
+
+describe('fasce orarie in prenotazione', () => {
+  const mattina = { da: h(9), a: h(13) };
+  const sera = { da: h(17), a: h(20) };
+  it('filtra per orario di inizio; senza fasce scelte passa tutto', () => {
+    expect(nelleFasce(h(9), [mattina])).toBe(true);
+    expect(nelleFasce(h(12, 45), [mattina])).toBe(true);
+    expect(nelleFasce(h(13), [mattina])).toBe(false);
+    expect(nelleFasce(h(18), [mattina, sera])).toBe(true);
+    expect(nelleFasce(h(15), [])).toBe(true);
+  });
+
+  it('il primo disponibile nelle fasce: orario più presto, poi un solo operatore', () => {
+    const salone = MATTINA_POMERIGGIO;
+    const operatori = [
+      { id: 1, turno: salone, competenze: ['Colore', 'Piega'] },
+      { id: 2, turno: salone, competenze: ['Piega'] },
+    ];
+    const slot = trovaSlot({ fasi: COLORE, salone, operatori, impegni: [], passo: 15 });
+    const pomeriggio = slot.filter((s) => nelleFasce(s.inizio, [{ da: h(15), a: h(19) }]));
+    const primo = primoSlot(pomeriggio)!;
+    expect(primo.inizio).toBe(h(15));
+    expect(primo.staff).toEqual([1, null, 1]);
+    expect(primoSlot([])).toBeUndefined();
   });
 });

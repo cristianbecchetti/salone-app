@@ -207,3 +207,22 @@ export function verifica(p: {
   }
   return [...avvisi];
 }
+
+/** Fascia oraria con nome, usata in prenotazione per filtrare gli orari (es. "Mattina" 9–13). */
+export interface FasciaNominata extends Fascia {
+  nome: string;
+}
+
+/** L'orario di inizio cade in una delle fasce scelte? Nessuna fascia scelta = tutti gli orari. */
+export const nelleFasce = (inizio: number, fasce: Fascia[]) => !fasce.length || fasce.some((f) => inizio >= f.da && inizio < f.a);
+
+/**
+ * Il primo appuntamento disponibile: l'orario più presto; a parità di orario
+ * preferisce un solo operatore per tutte le fasi, poi chi ha la skill.
+ */
+export function primoSlot(slot: Slot[]): Slot | undefined {
+  const unico = (s: Slot) => new Set(s.staff.filter((x) => x != null)).size <= 1;
+  return [...slot].sort(
+    (x, y) => x.inizio - y.inizio || Number(unico(y)) - Number(unico(x)) || Number(y.haSkill) - Number(x.haSkill),
+  )[0];
+}

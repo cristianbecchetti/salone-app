@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from '../db';
 import type { Appuntamento, FaseApp, Servizio, Stato, TipoFase } from '../types';
-import { allineaPose, fasceSalone, impegniDa, trovaSlot, turnoOperatore, verifica, type Slot } from '../lib/slots';
+import { allineaPose, fasceSalone, impegniDa, nelleFasce, primoSlot, trovaSlot, turnoOperatore, verifica, type Slot } from '../lib/slots';
 import { dataLunga, dataNum, hm, minuti, oggi, oraMinuti, piuGiorni } from '../lib/tempo';
 import { normalizzaTelefono } from '../lib/contatti';
 import { inviaWhatsApp } from '../lib/whatsapp';
@@ -179,6 +179,13 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
   const cambiaDurata =(i: number, delta: number) =>
     setBozza(bozza.map((b, j) => (j === i ? { ...b, durata: Math.max(5, b.durata + delta), daStorico: false } : b)));
 
+  // fasce orarie scelte (nessuna = tutto il giorno)
+  const fasceOrarie = imp.fasceOrarie ?? [];
+  const [fasceScelte, setFasceScelte] = useState<string[]>([]);
+  const fasceAttive = fasceOrarie.filter((f) => fasceScelte.includes(f.nome) && f.a > f.da);
+  const cambiaFascia = (nome: string) =>
+    setFasceScelte(fasceScelte.includes(nome) ? fasceScelte.filter((n) => n !== nome) : [...fasceScelte, nome]);
+
   function slotDelGiorno(g: string, appuntamenti: Appuntamento[]): Slot[] {
     const salone = fasceSalone(g, imp.settimana, eccezioni);
     return trovaSlot({
@@ -189,7 +196,7 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
       passo: imp.passo,
       nonPrimaDi: g === oggi() ? oraMinuti() : 0,
       ancheSenzaSkill: tutti,
-    }).filter((s) => !filtroOp || s.staff.includes(filtroOp));
+    }).filter((s) => (!filtroOp || s.staff.includes(filtroOp)) && nelleFasce(s.inizio, fasceAttive));
   }
 
   const salone = fasceSalone(data, imp.settimana, eccezioni);
@@ -198,18 +205,21 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
   const inizioStriscia = data >= oggi() && data <= piuGiorni(oggi(), 20) ? oggi() : piuGiorni(data, -3);
   const slot = bozza.length ? slotDelGiorno(data, delGiorno) : [];
 
+  /** Primo appuntamento libero (dal giorno mostrato, entro 60 giorni) nelle fasce scelte: va al giorno e lo seleziona. */
   async function primoDisponibile() {
     setMsg('');
     const da = data < oggi() ? oggi() : data;
     const futuri = await db.appuntamenti.where('data').between(da, piuGiorni(da, 60), true, true).toArray();
     for (let i = 0; i <= 60; i++) {
       const g = piuGiorni(da, i);
-      if (slotDelGiorno(g, futuri.filter((a) => a.data === g)).length) {
+      const primo = primoSlot(slotDelGiorno(g, futuri.filter((a) => a.data === g)));
+      if (primo) {
         setData(g);
+        scegliSlot(primo);
         return;
       }
     }
-    setMsg('Nessuno slot libero nei prossimi 60 giorni con questi criteri.');
+    setMsg(`Nessuno slot libero nei prossimi 60 giorni${fasceAttive.length ? ' nelle fasce scelte' : ''} con questi criteri.`);
   }
 
   function scegliSlot(s: Slot) {
@@ -550,10 +560,28 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
                 <input type="checkbox" checked={tutti} onChange={(e) => setTutti(e.target.checked)} />
                 anche chi non ha la skill
               </label>
-              <button className="piccolo" disabled={!bozza.length} onClick={primoDisponibile}>
-                Primo giorno libero
+              <button className="primario piccolo" disabled={!bozza.length} onClick={primoDisponibile}>
+                Primo disponibile{fasceAttive.length ? ' nelle fasce' : ''}
               </button>
             </div>
+            {fasceOrarie.length > 0 && (
+              <div className="chips fasce-orarie" role="group" aria-label="Fasce orarie">
+                <span className="tenue">Fasce orarie:</span>
+                <button className={`chip${fasceAttive.length ? '' : ' scelto'}`} onClick={() => setFasceScelte([])}>
+                  Tutto il giorno
+                </button>
+                {fasceOrarie.map((f) => (
+                  <button
+                    key={f.nome}
+                    className={`chip${fasceScelte.includes(f.nome) ? ' scelto' : ''}`}
+                    aria-pressed={fasceScelte.includes(f.nome)}
+                    onClick={() => cambiaFascia(f.nome)}
+                  >
+                    {f.nome} <span className="fascia-ore">{hm(f.da)}–{hm(f.a)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             {msg && <p className="avviso">{msg}</p>}
 
             {!bozza.length ? (
@@ -562,7 +590,7 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
               <p className="avviso">Il salone è chiuso in questa data.</p>
             ) : !slot.length ? (
               <p className="avviso">
-                Nessuno slot libero in questo giorno.
+                {fasceAttive.length ? 'Nessuno slot libero in questo giorno nelle fasce scelte.' : 'Nessuno slot libero in questo giorno.'}
                 {!tutti && ' Prova ad attivare "anche chi non ha la skill".'}
               </p>
             ) : (

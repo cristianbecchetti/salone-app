@@ -324,3 +324,9 @@ pre.codice { background: #2b2430; color: #f3e8ef; padding: .75rem; border-radius
 
 /* reminder: filtro per durata */
 .filtro-durata { background: var(--accento-chiaro); border-radius: var(--raggio); padding: 0.4rem 0.75rem; margin-bottom: 0.75rem; }
+
+/* fasce orarie in prenotazione e nella pagina Orari */
+.fasce-orarie { align-items: center; }
+.fasce-orarie .chip { min-height: 3rem; }
+.fascia-ore { font-size: .82em; opacity: .8; font-variant-numeric: tabular-nums; margin-left: .25rem; }
+.nome-fascia { width: 11rem; }
