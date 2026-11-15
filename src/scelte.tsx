@@ -340,6 +340,7 @@ export function Telefono(p: { valore: string; onChange: (v: string) => void; pre
     if (p.valore) setPrefisso(dividiTelefono(p.valore, base).prefisso);
   }, [p.valore, base]);
   const numero = p.valore ? diviso.numero : '';
+  const paese = PAESI.find((x) => x.prefisso === prefisso);
 
   function scrivi(testo: string) {
     const t = testo.trim();
@@ -360,20 +361,27 @@ export function Telefono(p: { valore: string; onChange: (v: string) => void; pre
 
   return (
     <span className="telefono">
-      <select
-        aria-label={`Paese${p.label ? ` di ${p.label}` : ''}`}
-        value={prefisso}
-        onChange={(e) => {
-          setPrefisso(e.target.value);
-          p.onChange(unisciTelefono(e.target.value, numero));
-        }}
-      >
-        {PAESI.map((x) => (
-          <option key={x.iso} value={x.prefisso}>
-            {bandiera(x.iso)} {x.prefisso} {x.nome}
-          </option>
-        ))}
-      </select>
+      {/* riquadro compatto (bandiera e prefisso); toccandolo si apre l'elenco completo dei paesi */}
+      <span className="paese" title={paese?.nome}>
+        <span className="paese-vista" aria-hidden>
+          {paese ? bandiera(paese.iso) : ''} {prefisso} <span className="paese-freccia">▾</span>
+        </span>
+        <select
+          className="paese-scelta"
+          aria-label={`Paese${p.label ? ` di ${p.label}` : ''}`}
+          value={prefisso}
+          onChange={(e) => {
+            setPrefisso(e.target.value);
+            p.onChange(unisciTelefono(e.target.value, numero));
+          }}
+        >
+          {PAESI.map((x) => (
+            <option key={x.iso} value={x.prefisso}>
+              {bandiera(x.iso)} {x.prefisso} {x.nome}
+            </option>
+          ))}
+        </select>
+      </span>
       <input
         inputMode="tel"
         autoComplete="tel-national"
