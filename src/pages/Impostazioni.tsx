@@ -350,8 +350,13 @@ export default function Impostazioni() {
                   codice → salva (icona del dischetto).
                 </li>
                 <li>
+                  Nella barra in alto scegli la funzione <b>autorizza</b> e premi <b>Esegui</b> → <b>Rivedi autorizzazioni</b> → account del
+                  salone → <b>Avanzate → Vai a … (non sicuro)</b> → se compaiono caselle spunta <b>Seleziona tutto</b> (anche Google Drive) →{' '}
+                  <b>Continua</b>. Nel registro deve comparire "Drive autorizzato".
+                </li>
+                <li>
                   In alto a destra <b>Esegui il deployment → Nuovo deployment</b> → tipo <b>App web</b> → "Esegui come: <b>Me</b>", "Chi ha
-                  accesso: <b>Chiunque</b>" → <b>Esegui il deployment</b> → autorizza l'accesso a Google Drive.
+                  accesso: <b>Chiunque</b>" → <b>Esegui il deployment</b>.
                 </li>
                 <li>
                   Copia l'<b>URL dell'app web</b> (finisce con /exec) e incollalo qui sopra in "Indirizzo dello script".

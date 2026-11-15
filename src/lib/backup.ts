@@ -159,4 +159,12 @@ function risposta(o) {
     JSON.stringify(o));
   return out.setMimeType(ContentService.MimeType.JSON);
 }
+
+// Scegliere autorizza in alto e premere Esegui:
+// Google chiede il permesso su Drive, va concesso.
+function autorizza() {
+  var c = DriveApp.getRootFolder();
+  Logger.log('Drive autorizzato: ' + c.getName());
+  Logger.log(Session.getEffectiveUser().getEmail());
+}
 `;
