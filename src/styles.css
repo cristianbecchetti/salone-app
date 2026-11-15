@@ -307,3 +307,17 @@ main.solo { height: 100%; overflow-y: auto; }
 .istruzioni ol { padding-left: 1.4rem; line-height: 1.5; }
 .istruzioni li { margin: .35rem 0; }
 pre.codice { background: #2b2430; color: #f3e8ef; padding: .75rem; border-radius: .6rem; font-size: .75rem; overflow-x: auto; white-space: pre; user-select: all; }
+
+/* agenda: ogni cliente ha un colore (banda a sinistra e sigla), servizio su ogni blocco */
+.blocco { box-shadow: inset 0.45rem 0 0 var(--k, transparent); padding-left: 0.85rem; }
+.blocco.posa { padding-left: 0.7rem; }
+.blocco-cliente { display: flex; align-items: center; gap: 0.3rem; }
+.blocco-servizio { font-weight: 700; opacity: 1 !important; }
+.sigla {
+  display: inline-grid; place-items: center; flex: none; min-width: 1.45rem; height: 1.45rem; padding: 0 0.2rem;
+  border-radius: 99px; background: var(--k, #888); color: #fff; font-style: normal; font-size: 0.72rem; font-weight: 800;
+  letter-spacing: .02em; text-shadow: 0 0 2px rgba(0, 0, 0, .55); box-shadow: 0 0 0 2px #fff;
+}
+.blocco.evidenziato { z-index: 3; outline: 3px solid var(--k); outline-offset: 1px; }
+.blocco.attenuato { opacity: .3; }
+.voce-sett .sigla { margin-right: 0.3rem; vertical-align: middle; }

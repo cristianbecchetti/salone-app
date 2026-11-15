@@ -7,6 +7,24 @@ import { allineaPose, fasceSalone, impegniDa, turnoOperatore, verifica } from '.
 import { dataBreve, dataLunga, hm, lunedi, oggi, oraMinuti, piuGiorni } from '../lib/tempo';
 import { nomeCliente } from '../ui';
 import { SceltaData } from '../scelte';
+import type { Cliente } from '../types';
+
+/** Colori ben distinti, uno per cliente del giorno (si ripetono solo oltre 16 clienti). */
+const COLORI_CLIENTI = [
+  '#e6194b', '#f58231', '#d4a017', '#3cb44b', '#00a6c8', '#4363d8', '#9b5de5', '#f032e6',
+  '#6a9e1f', '#ff6f91', '#2a9d8f', '#a0522d', '#c1121f', '#0d3b66', '#06a77d', '#7b2cbf',
+];
+
+/** Assegna a ogni cliente del giorno un colore diverso, in ordine di primo appuntamento. */
+function coloriClienti(app: Appuntamento[]): Map<number, string> {
+  const mappa = new Map<number, string>();
+  for (const a of [...app].sort((x, y) => x.inizio - y.inizio))
+    if (!mappa.has(a.clientId)) mappa.set(a.clientId, COLORI_CLIENTI[mappa.size % COLORI_CLIENTI.length]);
+  return mappa;
+}
+
+/** Iniziali del cliente, es. "MR" per Maria Rossi. */
+const sigla = (c?: Cliente) => ((c?.nome?.[0] ?? '') + (c?.cognome?.[0] ?? '')).toUpperCase() || '?';
 
 
 /** Intervalli di [da, a] non coperti dalle fasce (zone "chiuso" / fuori turno). */
@@ -57,6 +75,7 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
     return () => clearTimeout(t);
   }, [esito]);
 
+  const [evidenzia, setEvidenzia] = useState<number | null>(null);
   const [adesso, setAdesso] = useState(oraMinuti());
   useEffect(() => {
     const t = setInterval(() => setAdesso(oraMinuti()), 60_000);
@@ -117,8 +136,11 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
                   <strong className="capitalizza">{dataBreve(g)}</strong>
                   <span className="tenue">{aperto.length ? aperto.map((f) => `${hm(f.da)}–${hm(f.a)}`).join(' · ') : 'Chiuso'}</span>
                 </button>
-                {lista.map((a) => (
+                {lista.map((a, _i, tutti) => (
                   <button key={a.id} className={`voce-sett ${a.stato}`} onClick={() => vai({ p: 'prenota', id: a.id })}>
+                    <i className="sigla" style={{ background: coloriClienti(tutti).get(a.clientId) }} aria-hidden>
+                      {sigla(clienti.find((c) => c.id === a.clientId))}
+                    </i>
                     <b>{hm(a.inizio)}</b> {cliente(a)}
                     <span className="tenue">{servizi(a)}</span>
                   </button>
@@ -134,6 +156,7 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
 
   // ---- vista giorno ----
   const lista = visibili(giorno);
+  const coloreDi = coloriClienti(lista);
   const salone = fasceSalone(giorno, imp.settimana, eccezioni);
   const ecc = eccezioni.find((e) => e.data === giorno);
   const usati = new Set(lista.flatMap((a) => a.fasi.map((f) => f.staffId)));
@@ -257,12 +280,29 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
         if (f.staffId !== staffId || f.durata <= 0) return null;
         const colore = operatori.find((o) => o.id === staffId)?.colore ?? '#777';
         const mobile = f.tipo === 'lavoro';
+        const c = clienti.find((k) => k.id === x.clientId);
+        const stato = [
+          fantasma && presa.current?.a.id === x.id && presa.current?.i === i && 'in-volo',
+          evidenzia != null && (evidenzia === x.clientId ? 'evidenziato' : 'attenuato'),
+        ]
+          .filter(Boolean)
+          .join(' ');
         return (
           <button
             key={`${x.id}-${i}`}
-            className={`blocco ${f.tipo} ${x.stato}${fantasma && presa.current?.a.id === x.id && presa.current?.i === i ? ' in-volo' : ''}`}
-            style={{ top: (f.inizio - da) * PX, height: f.durata * PX - 2, ['--c' as string]: colore }}
+            className={`blocco ${f.tipo} ${x.stato} ${stato}`}
+            style={{
+              top: (f.inizio - da) * PX,
+              height: f.durata * PX - 2,
+              ['--c' as string]: colore,
+              ['--k' as string]: coloreDi.get(x.clientId),
+            }}
+            title={`${cliente(x)} · ${f.servizio} · ${f.nome} ${hm(f.inizio)}–${hm(f.inizio + f.durata)}`}
+            onPointerEnter={(e) => e.pointerType === 'mouse' && setEvidenzia(x.clientId)}
+            onPointerLeave={(e) => e.pointerType === 'mouse' && !presa.current && setEvidenzia(null)}
             onPointerDown={(e) => {
+              // tenendo premuto si vedono subito tutti i blocchi dello stesso cliente
+              setEvidenzia(x.clientId);
               if (!mobile || e.button !== 0) return;
               const testo = `${cliente(x)} · ${f.nome}`;
               const { clientX, clientY } = e;
@@ -277,11 +317,15 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
               e.currentTarget.setPointerCapture(e.pointerId);
             }}
             onPointerMove={(e) => muovi(e, `${cliente(x)} · ${f.nome}`, colore)}
-            onPointerUp={rilascia}
+            onPointerUp={(e) => {
+              if (e.pointerType !== 'mouse') setEvidenzia(null);
+              rilascia();
+            }}
             onPointerCancel={() => {
               clearTimeout(presa.current?.timer);
               presa.current = null;
               setFantasma(null);
+              setEvidenzia(null);
             }}
             onContextMenu={(e) => e.preventDefault()}
             onClick={(e) => {
@@ -290,7 +334,13 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
               vai({ p: 'prenota', id: x.id });
             }}
           >
-            <b>{cliente(x)}</b>
+            <b className="blocco-cliente">
+              <i className="sigla" aria-hidden>
+                {sigla(c)}
+              </i>
+              {cliente(x)}
+            </b>
+            <span className="blocco-servizio">{f.servizio}</span>
             <span>
               {f.tipo === 'posa' ? 'posa' : f.nome} · {hm(f.inizio)}–{hm(f.inizio + f.durata)}
             </span>
