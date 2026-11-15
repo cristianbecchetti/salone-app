@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from '../db';
 import type { Appuntamento, SchedaColore, Servizio } from '../types';
-import { linkWhatsApp } from '../lib/contatti';
-import { grammiTonalita, grammiTotali, ricettaPer, serviziDi, testoPreparazione, testoRicetta, type VocePreparazione } from '../lib/messaggi';
+import { inviaWhatsApp, modoApi } from '../lib/whatsapp';
+import { grammiTonalita, grammiTotali, parametriPreparazione, ricettaPer, serviziDi, testoPreparazione, testoRicetta, type VocePreparazione } from '../lib/messaggi';
 import { dataLunga, dataNum, hm, oggi, piuGiorni } from '../lib/tempo';
 import SchedaColoreEditor, { nuovaScheda } from '../SchedaColoreEditor';
 import { Pallino, nomeCliente } from '../ui';
@@ -46,6 +46,25 @@ export default function Colori({ magazzino = false }: { magazzino?: boolean }) {
   const daFare = voci.filter((v) => !v.a.preparatoIl).length;
   const testo = testoPreparazione(giorno, voci as VocePreparazione[]);
 
+  /** '' | 'invio' | 'inviato' | messaggio di errore */
+  const [esito, setEsito] = useState('');
+  async function inviaMagazzino() {
+    setEsito('invio');
+    try {
+      const ok = await inviaWhatsApp({
+        imp,
+        tipo: 'magazzino',
+        numero: imp.numeroMagazzino ?? '',
+        testo,
+        parametri: parametriPreparazione(giorno, voci as VocePreparazione[]),
+        a: 'il magazzino',
+      });
+      setEsito(ok && modoApi(imp) ? 'inviato' : '');
+    } catch (err) {
+      setEsito(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   const segna = (a: Appuntamento, fatto: boolean) =>
     db.appuntamenti.update(a.id!, { preparatoIl: fatto ? new Date().toISOString() : undefined });
 
@@ -67,10 +86,12 @@ export default function Colori({ magazzino = false }: { magazzino?: boolean }) {
         <button className="no-stampa" onClick={() => window.print()}>
           Stampa
         </button>
-        <a className="bottone whatsapp no-stampa" href={linkWhatsApp(imp.numeroMagazzino ?? '', testo)} target="_blank" rel="noreferrer">
-          Invia al magazzino
-        </a>
+        <button className="bottone whatsapp no-stampa" disabled={esito === 'invio'} onClick={inviaMagazzino}>
+          {esito === 'invio' ? 'Invio…' : 'Invia al magazzino'}
+        </button>
       </header>
+      {esito === 'inviato' && <p className="nota no-stampa">✓ Preparazione inviata al magazzino.</p>}
+      {esito && esito !== 'invio' && esito !== 'inviato' && <p className="avviso no-stampa">{esito}</p>}
       <p className="nota">
         <b className="capitalizza">{dataLunga(giorno)}</b>:{' '}
         {voci.length ? `${voci.length} ${voci.length === 1 ? 'colore' : 'colori'}, ${daFare} da preparare.` : 'nessun colore in agenda.'}

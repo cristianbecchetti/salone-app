@@ -4,8 +4,9 @@ import { db, useImpostazioni } from '../db';
 import type { Appuntamento, FaseApp, Servizio, Stato, TipoFase } from '../types';
 import { allineaPose, fasceSalone, impegniDa, trovaSlot, turnoOperatore, verifica, type Slot } from '../lib/slots';
 import { dataLunga, dataNum, hm, minuti, oggi, oraMinuti, piuGiorni } from '../lib/tempo';
-import { linkWhatsApp, normalizzaTelefono } from '../lib/contatti';
-import { testoConferma } from '../lib/messaggi';
+import { normalizzaTelefono } from '../lib/contatti';
+import { inviaWhatsApp } from '../lib/whatsapp';
+import { parametriAppuntamento, testoConferma } from '../lib/messaggi';
 import { Ora, Pallino, nomeCliente } from '../ui';
 import { SceltaData, SceltaOra, StrisciaGiorni } from '../scelte';
 
@@ -331,8 +332,21 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
     };
     if (id) a.id = id;
     a.id = await db.appuntamenti.put(a);
-    // apre WhatsApp con la conferma già scritta: l'invio resta un tocco dell'operatore
-    if (inviaConferma && cliente) window.open(linkWhatsApp(cliente.telefono, testoConferma(a, cliente, imp)), '_blank');
+    // conferma spuntata dall'operatore: apre WhatsApp oppure invia direttamente (Altro → Invio WhatsApp)
+    if (inviaConferma && cliente) {
+      try {
+        await inviaWhatsApp({
+          imp,
+          tipo: 'conferma',
+          numero: cliente.telefono,
+          testo: testoConferma(a, cliente, imp),
+          parametri: parametriAppuntamento(a, cliente, imp),
+          a: nomeCliente(cliente),
+        });
+      } catch (err) {
+        alert(`Appuntamento salvato, ma la conferma non è partita.\n${err instanceof Error ? err.message : err}`);
+      }
+    }
     onFine(data);
   }
 

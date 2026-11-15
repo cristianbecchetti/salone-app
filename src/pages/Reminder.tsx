@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from '../db';
 import type { Appuntamento } from '../types';
-import { componiMessaggio, linkWhatsApp } from '../lib/contatti';
+import { componiMessaggio } from '../lib/contatti';
+import { parametriAppuntamento } from '../lib/messaggi';
+import { inviaWhatsApp, modoApi } from '../lib/whatsapp';
+import type { Cliente } from '../types';
 import { dataLunga, hm, piuGiorni } from '../lib/tempo';
 import { nomeCliente } from '../ui';
 import { SceltaData } from '../scelte';
@@ -25,6 +28,23 @@ export default function Reminder({ predefinito }: { predefinito: string }) {
     });
   const segna = (a: Appuntamento, inviato: boolean) =>
     db.appuntamenti.update(a.id!, { reminderInviatoIl: inviato ? new Date().toISOString() : undefined });
+  const api = modoApi(imp);
+  const [inCorso, setInCorso] = useState<number | null>(null);
+  const [errori, setErrori] = useState<Record<number, string>>({});
+
+  // il tocco su "Invia" è la scelta dell'operatore: apre WhatsApp oppure invia direttamente
+  async function invia(a: Appuntamento, c: Cliente) {
+    setErrori((e) => ({ ...e, [a.id!]: '' }));
+    setInCorso(a.id!);
+    try {
+      const ok = await inviaWhatsApp({ imp, tipo: 'reminder', numero: c.telefono, testo: testo(a), parametri: parametriAppuntamento(a, c, imp), a: nomeCliente(c) });
+      if (ok) await segna(a, true);
+    } catch (err) {
+      setErrori((e) => ({ ...e, [a.id!]: err instanceof Error ? err.message : String(err) }));
+    } finally {
+      setInCorso(null);
+    }
+  }
 
   const daInviare = lista.filter((a) => !a.reminderInviatoIl).length;
   return (
@@ -44,7 +64,11 @@ export default function Reminder({ predefinito }: { predefinito: string }) {
       <p className="nota">
         Appuntamenti di <b className="capitalizza">{dataLunga(data)}</b>
         {data === predefinito && ' (prossimo giorno di apertura)'}: {lista.length ? `${daInviare} da avvisare su ${lista.length}` : 'nessuno'}.
-        Toccando <b>Invia</b> si apre WhatsApp con il messaggio già scritto: basta premere invio.
+        {api ? (
+          <> Toccando <b>Invia ora</b> il messaggio parte subito, senza aprire WhatsApp.</>
+        ) : (
+          <> Toccando <b>Invia</b> si apre WhatsApp con il messaggio già scritto: basta premere invio.</>
+        )}
       </p>
 
       <div className="elenco">
@@ -58,7 +82,8 @@ export default function Reminder({ predefinito }: { predefinito: string }) {
                   {hm(a.inizio)} · {nomeCliente(c)}
                 </strong>
                 <span className="tenue"> {c?.telefono || 'senza numero'}</span>
-                <p className="anteprima">{testo(a)}</p>
+                {!api && <p className="anteprima">{testo(a)}</p>}
+                {errori[a.id!] && <p className="avviso">{errori[a.id!]}</p>}
               </div>
               {inviato ? (
                 <div className="azioni">
@@ -68,9 +93,9 @@ export default function Reminder({ predefinito }: { predefinito: string }) {
                   </button>
                 </div>
               ) : c?.telefono ? (
-                <a className="bottone whatsapp" href={linkWhatsApp(c.telefono, testo(a))} target="_blank" rel="noreferrer" onClick={() => segna(a, true)}>
-                  Invia
-                </a>
+                <button className="bottone whatsapp" disabled={inCorso === a.id} onClick={() => invia(a, c)}>
+                  {inCorso === a.id ? 'Invio…' : api ? 'Invia ora' : 'Invia'}
+                </button>
               ) : (
                 <span className="etichetta gialla">manca il cellulare</span>
               )}

@@ -128,6 +128,18 @@ export interface Impostazioni {
   messaggioMese?: string;
   /** numero WhatsApp a cui mandare la preparazione colori */
   numeroMagazzino?: string;
+  /** 'app' = apre WhatsApp con il testo pronto; 'api' = invio diretto con WhatsApp Business Cloud API */
+  waModo?: 'app' | 'api';
+  /** Cloud API: ID del numero di telefono mittente (Meta) */
+  waPhoneId?: string;
+  /** Cloud API: token di accesso. Resta solo su questo dispositivo, escluso dai backup. */
+  waToken?: string;
+  /** Cloud API: versione delle Graph API, es. "v23.0" */
+  waVersione?: string;
+  /** Cloud API: codice lingua dei template, es. "it" */
+  waLingua?: string;
+  /** Cloud API: nome del template approvato per ogni tipo di messaggio */
+  waTemplate?: Partial<Record<'reminder' | 'conferma' | 'mese' | 'magazzino', string>>;
   /** moltiplicatore della dimensione di testo e controlli (1 = normale) */
   scalaTesto?: number;
   passo: number;

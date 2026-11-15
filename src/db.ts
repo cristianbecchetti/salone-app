@@ -18,6 +18,17 @@ export const IMPOSTAZIONI_BASE: Impostazioni = {
   messaggioMese: 'Ciao {nome}, ecco i tuoi appuntamenti di {mese} da {salone}:',
   numeroMagazzino: '',
   scalaTesto: 1.2,
+  waModo: 'app',
+  waPhoneId: '',
+  waToken: '',
+  waVersione: 'v23.0',
+  waLingua: 'it',
+  waTemplate: {
+    reminder: 'promemoria_appuntamento',
+    conferma: 'conferma_appuntamento',
+    mese: 'riepilogo_mese',
+    magazzino: 'preparazione_colori',
+  },
   passo: 15,
   prefisso: '+39',
   // domenica e lunedì chiuso, sabato orario continuato
@@ -222,6 +233,8 @@ export async function cambiaSkill(id: number, nuovo: string | null): Promise<str
 export async function esportaTutto() {
   const dati: Record<string, unknown[]> = {};
   for (const t of TABELLE) dati[t] = await db.table(t).toArray();
+  // il token WhatsApp è una credenziale: non finisce nei file di backup
+  dati.impostazioni = (dati.impostazioni as Impostazioni[]).map(({ waToken: _token, ...resto }) => resto);
   return { app: 'salone', versione: 1, esportatoIl: new Date().toISOString(), dati };
 }
 
@@ -230,11 +243,14 @@ export async function ripristina(backup: unknown) {
   const b = backup as { app?: string; dati?: Record<string, unknown[]> };
   if (b?.app !== 'salone' || !b.dati) throw new Error('Il file non è un backup di questa app.');
   const dati = b.dati;
+  const tokenAttuale = (await db.impostazioni.get('main'))?.waToken;
   await db.transaction('rw', db.tables, async () => {
     for (const t of TABELLE) {
       await db.table(t).clear();
       if (Array.isArray(dati[t])) await db.table(t).bulkPut(dati[t]);
     }
+    // il backup non contiene il token: si tiene quello già presente su questo dispositivo
+    if (tokenAttuale) await db.impostazioni.update('main', { waToken: tokenAttuale });
     // backup precedenti all'anagrafica skill: la ricostruisce dai dati
     if (!Array.isArray(dati.skill)) await db.skill.bulkAdd((await skillInUso(db.servizi, db.operatori)).map((nome) => ({ nome })));
   });

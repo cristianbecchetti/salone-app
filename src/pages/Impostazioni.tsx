@@ -5,10 +5,14 @@ import type { Impostazioni as Imp } from '../types';
 import { componiMessaggio } from '../lib/contatti';
 import { dataLunga, oggi, piuGiorni } from '../lib/tempo';
 import { Campo } from '../ui';
+import { TEMPLATE_PREDEFINITI, TESTI_TEMPLATE, inviaTemplate, mancaConfigurazione, type TipoMessaggio } from '../lib/whatsapp';
 
 export default function Impostazioni() {
   const imp = useImpostazioni();
   const [msg, setMsg] = useState('');
+  const [vediToken, setVediToken] = useState(false);
+  const [numeroProva, setNumeroProva] = useState('');
+  const [esitoProva, setEsitoProva] = useState('');
   const [protetti, setProtetti] = useState<boolean | null>(null);
   const file = useRef<HTMLInputElement>(null);
   const conteggi = useLiveQuery(async () => ({ clienti: await db.clienti.count(), appuntamenti: await db.appuntamenti.count() }), []);
@@ -18,6 +22,19 @@ export default function Impostazioni() {
   }, []);
 
   const salva = (pezzo: Partial<Imp>) => db.impostazioni.put({ ...imp, ...pezzo });
+  const api = imp.waModo === 'api';
+  const nomeTemplate = (t: TipoMessaggio) => imp.waTemplate?.[t] ?? TEMPLATE_PREDEFINITI[t];
+
+  /** Messaggio di prova con il template del promemoria, per verificare la configurazione. */
+  async function prova() {
+    setEsitoProva('Invio in corso…');
+    try {
+      await inviaTemplate(imp, 'reminder', numeroProva, ['Prova', dataLunga(piuGiorni(oggi(), 1)), '10:30', 'Colore base', imp.nomeSalone]);
+      setEsitoProva('✓ Messaggio di prova inviato: controlla WhatsApp sul numero indicato.');
+    } catch (err) {
+      setEsitoProva(err instanceof Error ? err.message : String(err));
+    }
+  }
 
   async function esporta() {
     const nome = `salone-backup-${oggi()}.json`;
@@ -130,6 +147,76 @@ export default function Impostazioni() {
         <p className="tenue">
           Vista a schermo intero della sola preparazione colori: aggiungi <b>#magazzino</b> in fondo all'indirizzo dell'app.
         </p>
+      </section>
+
+      <section className="scheda">
+        <h3>Invio WhatsApp</h3>
+        <Campo etichetta="Come inviare i messaggi">
+          <select value={api ? 'api' : 'app'} onChange={(e) => salva({ waModo: e.target.value as 'app' | 'api' })}>
+            <option value="app">Apri WhatsApp con il messaggio pronto (come ora)</option>
+            <option value="api">Invio diretto, senza aprire WhatsApp (WhatsApp Business API)</option>
+          </select>
+        </Campo>
+        <p className="tenue">
+          In entrambi i casi il messaggio parte solo quando l'operatore tocca il pulsante di invio
+          {api ? ' e conferma.' : '.'} Vale per promemoria, conferme, riepilogo del mese e preparazione colori.
+        </p>
+        {api && (
+          <>
+            {mancaConfigurazione(imp).length > 0 && (
+              <p className="avviso">Per l'invio diretto manca: {mancaConfigurazione(imp).join(', ')}. Finché manca, i messaggi non partono.</p>
+            )}
+            <div className="griglia-form due">
+              <Campo etichetta="ID del numero di telefono" nota="Meta for Developers → WhatsApp → Configurazione API">
+                <input inputMode="numeric" value={imp.waPhoneId ?? ''} onChange={(e) => salva({ waPhoneId: e.target.value.trim() })} />
+              </Campo>
+              <Campo etichetta="Token di accesso permanente" nota="Resta solo su questo tablet e non viene messo nei backup.">
+                <div className="riga">
+                  <input
+                    className="cresce"
+                    type={vediToken ? 'text' : 'password'}
+                    autoComplete="off"
+                    value={imp.waToken ?? ''}
+                    onChange={(e) => salva({ waToken: e.target.value.trim() })}
+                  />
+                  <button type="button" className="piccolo" onClick={() => setVediToken(!vediToken)}>
+                    {vediToken ? 'Nascondi' : 'Mostra'}
+                  </button>
+                </div>
+              </Campo>
+              <Campo etichetta="Versione API" nota="Lasciare quella indicata da Meta, es. v23.0">
+                <input value={imp.waVersione ?? 'v23.0'} onChange={(e) => salva({ waVersione: e.target.value.trim() })} />
+              </Campo>
+              <Campo etichetta="Lingua dei template" nota="Codice lingua scelto su Meta, es. it">
+                <input value={imp.waLingua ?? 'it'} onChange={(e) => salva({ waLingua: e.target.value.trim() })} />
+              </Campo>
+            </div>
+            <h4>Template approvati da Meta</h4>
+            <p className="tenue">
+              Con l'invio diretto il testo dei messaggi è quello del template approvato su Meta (i testi sopra valgono solo per
+              "Apri WhatsApp"). Crea su Meta i template seguenti, categoria Utilità, lingua italiano, e scrivi qui il loro nome.
+            </p>
+            {(Object.keys(TESTI_TEMPLATE) as TipoMessaggio[]).map((t) => (
+              <div className="template-wa" key={t}>
+                <Campo
+                  etichetta={{ reminder: 'Promemoria', conferma: 'Conferma prenotazione', mese: 'Riepilogo del mese', magazzino: 'Preparazione colori' }[t]}
+                  nota={`Parametri: ${TESTI_TEMPLATE[t].parametri}`}
+                >
+                  <input value={nomeTemplate(t)} onChange={(e) => salva({ waTemplate: { ...imp.waTemplate, [t]: e.target.value.trim() } })} />
+                </Campo>
+                <p className="anteprima">{TESTI_TEMPLATE[t].testo}</p>
+              </div>
+            ))}
+            <h4>Prova</h4>
+            <div className="riga a-capo">
+              <input inputMode="tel" placeholder="Numero di prova, es. +39 333 1234567" value={numeroProva} onChange={(e) => setNumeroProva(e.target.value)} />
+              <button disabled={!numeroProva.trim()} onClick={prova}>
+                Invia messaggio di prova
+              </button>
+            </div>
+            {esitoProva && <p className={esitoProva.startsWith('✓') || esitoProva.startsWith('Invio') ? 'nota' : 'avviso'}>{esitoProva}</p>}
+          </>
+        )}
       </section>
 
       <section className="scheda">

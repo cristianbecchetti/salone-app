@@ -20,6 +20,12 @@ export function valoriAppuntamento(a: Appuntamento, c: Cliente | undefined, imp:
   };
 }
 
+/** Parametri dei template "promemoria" e "conferma": nome, data, ora, servizi, salone. */
+export const parametriAppuntamento = (a: Appuntamento, c: Cliente | undefined, imp: Impostazioni) => {
+  const v = valoriAppuntamento(a, c, imp);
+  return [v.nome, v.data, v.ora, v.servizio, v.salone];
+};
+
 export const testoConferma = (a: Appuntamento, c: Cliente | undefined, imp: Impostazioni) =>
   componiMessaggio(imp.messaggioConferma ?? '', valoriAppuntamento(a, c, imp));
 
@@ -42,6 +48,17 @@ export function testoMese(lista: Appuntamento[], c: Cliente | undefined, mese: s
     return `• ${giorno} alle ${hm(a.inizio)}: ${serviziDi(a)} (circa ${minuti(a.fine - a.inizio)})`;
   });
   return [intro, ...righe].join('\n');
+}
+
+/** Parametri del template "riepilogo mese": nome, mese, salone, elenco su una riga. */
+export function parametriMese(lista: Appuntamento[], c: Cliente | undefined, mese: string, imp: Impostazioni) {
+  const elenco = lista
+    .map((a) => {
+      const giorno = aData(a.data).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+      return `${giorno} alle ${hm(a.inizio)} (${serviziDi(a)})`;
+    })
+    .join('; ');
+  return [c?.nome ?? '', nomeMese(mese), imp.nomeSalone, elenco];
 }
 
 /** Una riga leggibile della ricetta: "Wella · 7/1 30 g + 8/0 20 g · ossigeno 20 vol 75 g" */
@@ -90,4 +107,16 @@ export function testoPreparazione(data: string, voci: VocePreparazione[]) {
     return `• ${hm(v.ora)} ${chi} — ${serviziDi(v.a)}\n  ${ricetta}${note}`;
   });
   return [`Preparazione colori di ${dataLunga(data)}`, ...(righe.length ? righe : ['Nessun colore da preparare.'])].join('\n');
+}
+
+/** Parametri del template "preparazione colori": data, elenco su una riga. */
+export function parametriPreparazione(data: string, voci: VocePreparazione[]) {
+  const elenco = voci
+    .map((v) => {
+      const chi = v.cliente ? `${v.cliente.nome} ${v.cliente.cognome}`.trim() : 'Cliente';
+      const ricetta = v.scheda ? testoRicetta(v.scheda) || 'scheda vuota' : 'nessuna ricetta';
+      return `${hm(v.ora)} ${chi}: ${ricetta}`;
+    })
+    .join('; ');
+  return [dataLunga(data), elenco || 'nessun colore da preparare'];
 }

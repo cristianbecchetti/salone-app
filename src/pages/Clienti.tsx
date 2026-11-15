@@ -12,7 +12,8 @@ import {
   type Contatto,
 } from '../lib/contatti';
 import { dataNum, hm, oggi } from '../lib/tempo';
-import { appuntamentiDelMese, grammiTotali, serviziDi, testoMese, testoRicetta } from '../lib/messaggi';
+import { appuntamentiDelMese, grammiTotali, parametriMese, serviziDi, testoMese, testoRicetta } from '../lib/messaggi';
+import { inviaWhatsApp, modoApi } from '../lib/whatsapp';
 import SchedaColoreEditor, { nuovaScheda } from '../SchedaColoreEditor';
 import { SceltaMese } from '../scelte';
 import { Campo, Modale, nomeCliente } from '../ui';
@@ -46,8 +47,28 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
     ) ?? [];
 
   const delMese = scheda?.id ? appuntamentiDelMese(visite, scheda.id, mese) : [];
+  /** '' | 'invio' | 'inviato' | messaggio di errore */
+  const [esitoMese, setEsitoMese] = useState('');
+  async function inviaMese() {
+    if (!scheda) return;
+    setEsitoMese('invio');
+    try {
+      const ok = await inviaWhatsApp({
+        imp,
+        tipo: 'mese',
+        numero: scheda.telefono,
+        testo: testoMese(delMese, scheda, mese, imp),
+        parametri: parametriMese(delMese, scheda, mese, imp),
+        a: nomeCliente(scheda),
+      });
+      setEsitoMese(ok && modoApi(imp) ? 'inviato' : '');
+    } catch (err) {
+      setEsitoMese(err instanceof Error ? err.message : String(err));
+    }
+  }
   const apri = (c: Cliente) => {
     setTab('dati');
+    setEsitoMese('');
     setScheda(c);
   };
 
@@ -230,21 +251,27 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
               <section className="scheda">
                 <h3>Invia gli appuntamenti del mese</h3>
                 <div className="riga a-capo">
-                  <SceltaMese valore={mese} onChange={setMese} label="Mese da inviare" />
+                  <SceltaMese
+                    valore={mese}
+                    onChange={(m) => {
+                      setMese(m);
+                      setEsitoMese('');
+                    }}
+                    label="Mese da inviare"
+                  />
                   <span className="tenue">{delMese.length ? `${delMese.length} appuntamenti` : 'nessun appuntamento in questo mese'}</span>
                 </div>
                 {delMese.length > 0 && (
                   <>
                     <p className="anteprima">{testoMese(delMese, scheda, mese, imp)}</p>
                     {scheda.telefono ? (
-                      <a
-                        className="bottone whatsapp"
-                        href={linkWhatsApp(scheda.telefono, testoMese(delMese, scheda, mese, imp))}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Invia su WhatsApp
-                      </a>
+                      <div className="riga a-capo">
+                        <button className="bottone whatsapp" disabled={esitoMese === 'invio'} onClick={inviaMese}>
+                          {esitoMese === 'invio' ? 'Invio…' : modoApi(imp) ? 'Invia ora' : 'Invia su WhatsApp'}
+                        </button>
+                        {esitoMese === 'inviato' && <span className="etichetta verde">✓ inviato</span>}
+                        {esitoMese && esitoMese !== 'invio' && esitoMese !== 'inviato' && <p className="avviso">{esitoMese}</p>}
+                      </div>
                     ) : (
                       <span className="etichetta gialla">manca il cellulare</span>
                     )}
