@@ -205,10 +205,13 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
   const inizioStriscia = data >= oggi() && data <= piuGiorni(oggi(), 20) ? oggi() : piuGiorni(data, -3);
   const slot = bozza.length ? slotDelGiorno(data, delGiorno) : [];
 
-  /** Primo appuntamento libero (dal giorno mostrato, entro 60 giorni) nelle fasce scelte: va al giorno e lo seleziona. */
+  /**
+   * Primo appuntamento libero nelle fasce scelte: cerca sempre da oggi (anche prima del giorno mostrato),
+   * entro 60 giorni; va al giorno trovato e seleziona l'orario.
+   */
   async function primoDisponibile() {
     setMsg('');
-    const da = data < oggi() ? oggi() : data;
+    const da = oggi();
     const futuri = await db.appuntamenti.where('data').between(da, piuGiorni(da, 60), true, true).toArray();
     for (let i = 0; i <= 60; i++) {
       const g = piuGiorni(da, i);
