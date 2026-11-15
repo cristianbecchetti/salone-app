@@ -6,7 +6,7 @@ import { avvisoEmail, codiceScript, driveConfigurato, verificaDrive } from '../l
 import type { Impostazioni as Imp } from '../types';
 import { PAESI, bandiera, componiMessaggio } from '../lib/contatti';
 import { Telefono } from '../scelte';
-import { linkCollegamento, sincronizza } from '../sincronizza';
+import { collegaDispositivo, leggiCollegamento, linkCollegamento, sincronizza } from '../sincronizza';
 import { soloDispositivo, type Record_ } from '../lib/sincronia';
 import { dataLunga, oggi, piuGiorni } from '../lib/tempo';
 import { Campo } from '../ui';
@@ -52,6 +52,7 @@ export default function Impostazioni() {
   const [occupatoSync, setOccupatoSync] = useState(false);
   const [link, setLink] = useState('');
   const [msgLink, setMsgLink] = useState('');
+  const [linkIncollato, setLinkIncollato] = useState('');
   const [esitoDrive, setEsitoDrive] = useState('');
   const [occupatoDrive, setOccupatoDrive] = useState(false);
   async function operazioneDrive(fn: () => Promise<string>) {
@@ -407,6 +408,44 @@ export default function Impostazioni() {
           file nella cartella "Backup Salone" del Google Drive collegato qui sopra; le modifiche arrivano sugli altri dispositivi entro un
           paio di minuti (serve internet).
         </p>
+        {!imp.syncAttiva && (
+          <div className="link-collega">
+            <p>
+              <b>Nuovo dispositivo?</b> Incolla qui il link ricevuto dal tablet (Altro → Collega un altro dispositivo). Su iPhone usa questo
+              campo dall'app già aggiunta alla schermata Home.
+            </p>
+            <div className="riga">
+              <input
+                className="cresce"
+                aria-label="Link di collegamento da incollare"
+                placeholder="https://…#collega=…"
+                value={linkIncollato}
+                onChange={(e) => setLinkIncollato(e.target.value)}
+              />
+              <button
+                className="primario"
+                disabled={!linkIncollato.trim() || occupatoSync}
+                onClick={async () => {
+                  const pezzo = /#collega=[\w-]+/.exec(linkIncollato.trim())?.[0];
+                  const dati = pezzo ? leggiCollegamento(pezzo) : null;
+                  if (!dati) {
+                    setMsgLink('Link non valido: copialo di nuovo per intero dal messaggio.');
+                    return;
+                  }
+                  if (!confirm('Collegare questo dispositivo? I dati presenti qui verranno sostituiti da quelli condivisi del salone.')) return;
+                  setOccupatoSync(true);
+                  await collegaDispositivo(dati);
+                  setOccupatoSync(false);
+                  setLinkIncollato('');
+                  setMsgLink('');
+                }}
+              >
+                {occupatoSync ? 'Collegamento…' : 'Collega'}
+              </button>
+            </div>
+            {msgLink && !link && <p className="avviso">{msgLink}</p>}
+          </div>
+        )}
         {!imp.driveUrl || !imp.driveChiave ? (
           <p className="avviso">Prima collega Google Drive nella sezione Backup qui sopra (indirizzo dello script e chiave).</p>
         ) : (
