@@ -103,40 +103,60 @@ export function avvisoEmail(attesa: string | undefined, effettiva: string | unde
     : `Attenzione: lo script salva nel Drive di ${effettiva}, non di ${attesa.trim()}.`;
 }
 
-/** Codice da incollare su script.google.com (account Google del salone). */
-export const codiceScript = (chiave: string) => `// Backup dell'app del salone su Google Drive.
-// Incollare su https://script.google.com con l'account Google del salone,
-// poi: Esegui il deployment > Nuovo deployment > App web,
-//      Esegui come: Me   -   Chi ha accesso: Chiunque.
-const CHIAVE = '${chiave}';
-const CARTELLA = 'Backup Salone';
+/**
+ * Codice da incollare su script.google.com (account Google del salone).
+ * Righe corte (max 60 caratteri), commenti senza apostrofi e testi brevi:
+ * così resta valido anche se e-mail o WhatsApp mandano a capo le righe lunghe.
+ */
+export const codiceScript = (chiave: string) => `// Backup app salone su Google Drive.
+// Pubblicare come App web:
+// Esegui come Me, accesso Chiunque.
+var CHIAVE = '${chiave}';
+var CARTELLA = 'Backup Salone';
 
 function doPost(e) {
   try {
-    const req = JSON.parse(e.postData.contents);
-    if (req.chiave !== CHIAVE) return risposta({ ok: false, errore: 'Chiave non valida' });
-    const email = Session.getEffectiveUser().getEmail();
-    if (req.azione === 'verifica') return risposta({ ok: true, email: email });
-    const cartelle = DriveApp.getFoldersByName(CARTELLA);
-    const cartella = cartelle.hasNext() ? cartelle.next() : DriveApp.createFolder(CARTELLA);
-    const file = cartella.createFile(req.nome, req.contenuto, 'application/json');
-    // tiene solo gli ultimi N backup (gli altri vanno nel cestino di Drive)
-    const conserva = Math.max(1, Math.min(365, Number(req.conserva) || 30));
-    const elenco = [];
-    const it = cartella.getFiles();
-    while (it.hasNext()) {
-      const f = it.next();
-      if (f.getName().indexOf('salone-backup-') === 0) elenco.push(f);
+    var req = JSON.parse(e.postData.contents);
+    if (req.chiave !== CHIAVE) {
+      var no = { ok: false };
+      no.errore = 'Chiave non valida';
+      return risposta(no);
     }
-    elenco.sort(function (a, b) { return b.getDateCreated() - a.getDateCreated(); });
-    elenco.slice(conserva).forEach(function (f) { f.setTrashed(true); });
-    return risposta({ ok: true, email: email, file: file.getName() });
+    var email = Session.getEffectiveUser().getEmail();
+    if (req.azione === 'verifica') {
+      return risposta({ ok: true, email: email });
+    }
+    var it = DriveApp.getFoldersByName(CARTELLA);
+    var cartella = it.hasNext() ? it.next()
+      : DriveApp.createFolder(CARTELLA);
+    var file = cartella.createFile(
+      req.nome, req.contenuto, 'application/json');
+    var conserva = Number(req.conserva) || 30;
+    conserva = Math.max(1, Math.min(365, conserva));
+    var elenco = [];
+    var fi = cartella.getFiles();
+    while (fi.hasNext()) {
+      var f = fi.next();
+      if (f.getName().indexOf('salone-backup-') === 0) {
+        elenco.push(f);
+      }
+    }
+    elenco.sort(function (a, b) {
+      return b.getDateCreated() - a.getDateCreated();
+    });
+    for (var i = conserva; i < elenco.length; i++) {
+      elenco[i].setTrashed(true);
+    }
+    return risposta({ ok: true, email: email,
+      file: file.getName() });
   } catch (err) {
     return risposta({ ok: false, errore: String(err) });
   }
 }
 
 function risposta(o) {
-  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+  var out = ContentService.createTextOutput(
+    JSON.stringify(o));
+  return out.setMimeType(ContentService.MimeType.JSON);
 }
 `;

@@ -70,8 +70,26 @@ describe('utilità', () => {
     expect(avvisoEmail('salone@gmail.com', 'altro@gmail.com')).toMatch(/altro@gmail.com/);
     expect(avvisoEmail('', 'altro@gmail.com')).toBe('');
   });
-  it('il codice dello script contiene la chiave', () => {
-    expect(codiceScript('abc123')).toContain("const CHIAVE = 'abc123';");
+  it('il codice dello script contiene la chiave ed è sintatticamente valido', () => {
+    const codice = codiceScript('abc123');
+    expect(codice).toContain("var CHIAVE = 'abc123';");
+    // deve compilare come JavaScript (Apps Script)
+    expect(() => new Function(codice)).not.toThrow();
+  });
+
+  it("resiste all'invio per e-mail o WhatsApp: righe corte, commenti senza apostrofi", () => {
+    const righe = codiceScript('0123456789abcdef0123456789abcdef').split('\n');
+    for (const r of righe) {
+      expect(r.length, r).toBeLessThanOrEqual(60);
+      if (r.trim().startsWith('//')) expect(r, r).not.toMatch(/['"`]/);
+    }
+  });
+
+  it('anche se ogni riga viene spezzata a 60 caratteri resta valido', () => {
+    // simulazione di un client e-mail che manda a capo alle parole: con righe ≤ 60 nulla cambia
+    const spezza = (r: string) => r.replace(/(.{1,60})(\s+|$)/g, '$1\n').trimEnd();
+    const codice = codiceScript('0123456789abcdef0123456789abcdef').split('\n').map(spezza).join('\n');
+    expect(() => new Function(codice)).not.toThrow();
   });
 });
 
