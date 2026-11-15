@@ -335,3 +335,21 @@ pre.codice { background: #2b2430; color: #f3e8ef; padding: .75rem; border-radius
 .telefono { display: flex; gap: 0.4rem; width: 100%; }
 .telefono select { flex: 0 0 auto; width: 11.5rem; }
 .telefono input { flex: 1 1 auto; min-width: 0; }
+
+/* moduli: i campi non escono mai dalla loro colonna, a qualunque dimensione di testo */
+.griglia-form { grid-template-columns: minmax(0, 1fr); }
+.griglia-form.due { grid-template-columns: repeat(auto-fit, minmax(min(13.75rem, 100%), 1fr)); }
+.griglia-form > *, .campo > *, .colonna, .scheda { min-width: 0; }
+.griglia-form > input, .griglia-form > select, .griglia-form > textarea,
+.campo > input, .campo > select, .campo > textarea { width: 100%; }
+.telefono { min-width: 0; }
+.telefono select { flex: 0 1 11.5rem; width: auto; min-width: 6.5rem; }
+.telefono input { width: auto; flex: 1 1 8rem; min-width: 0; }
+/* righe di pulsanti e testi: vanno a capo invece di uscire dallo schermo */
+.riga { flex-wrap: wrap; }
+.riga > .cresce { min-width: 6rem; }
+/* i pulsanti non superano mai la larghezza disponibile; quelli grandi vanno a capo */
+button, .bottone { max-width: 100%; }
+button.grande { white-space: normal; text-align: center; line-height: 1.2; }
+/* prenotazione: due colonne solo se c'è spazio per entrambe (dipende anche dalla dimensione del testo) */
+.due-colonne { grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr)); }
