@@ -79,6 +79,13 @@ export default function Impostazioni() {
           <Campo etichetta="Prefisso telefonico predefinito">
             <input value={imp.prefisso} inputMode="tel" onChange={(e) => salva({ prefisso: e.target.value.trim() })} />
           </Campo>
+          <Campo etichetta="Dimensione testo e pulsanti">
+            <select value={imp.scalaTesto ?? 1.2} onChange={(e) => salva({ scalaTesto: Number(e.target.value) })}>
+              <option value={1}>Normale</option>
+              <option value={1.2}>Grande</option>
+              <option value={1.4}>Molto grande</option>
+            </select>
+          </Campo>
           <Campo etichetta="Slot proposti ogni">
             <select value={imp.passo} onChange={(e) => salva({ passo: Number(e.target.value) })}>
               {[5, 10, 15, 20, 30].map((m) => (

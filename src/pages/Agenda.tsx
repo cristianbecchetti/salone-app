@@ -7,7 +7,6 @@ import { allineaPose, fasceSalone, impegniDa, turnoOperatore, verifica } from '.
 import { dataBreve, dataLunga, hm, lunedi, oggi, oraMinuti, piuGiorni } from '../lib/tempo';
 import { nomeCliente } from '../ui';
 
-const PX = 1.5; // pixel per minuto
 
 /** Intervalli di [da, a] non coperti dalle fasce (zone "chiuso" / fuori turno). */
 function buchi(fasce: Fascia[], da: number, a: number): Fascia[] {
@@ -25,6 +24,8 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
   const { giorno, setGiorno, vai } = p;
   const [vista, setVista] = useState<'giorno' | 'settimana'>('giorno');
   const imp = useImpostazioni();
+  // pixel per minuto: cresce con Altro → Dimensione testo
+  const PX = 1.8 * (imp.scalaTesto ?? 1.2);
   const operatori = useLiveQuery(() => db.operatori.toArray(), []) ?? [];
   const clienti = useLiveQuery(() => db.clienti.toArray(), []) ?? [];
   const eccezioni = useLiveQuery(() => db.eccezioni.toArray(), []) ?? [];
@@ -316,7 +317,7 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
       )}
       {!colonne.length && <p className="avviso">Nessun operatore attivo: aggiungine uno nella sezione Personale.</p>}
       <div className="griglia-scroll">
-        <div className="griglia" style={{ gridTemplateColumns: `56px repeat(${colonne.length + (senzaOp ? 1 : 0)}, minmax(150px, 1fr))` }}>
+        <div className="griglia" style={{ gridTemplateColumns: `3.5rem repeat(${colonne.length + (senzaOp ? 1 : 0)}, minmax(10rem, 1fr))` }}>
           <div className="angolo" />
           {colonne.map((o) => (
             <div className="col-testa" key={o.id} style={{ borderColor: o.colore }}>

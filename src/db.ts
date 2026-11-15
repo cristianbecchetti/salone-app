@@ -17,6 +17,7 @@ export const IMPOSTAZIONI_BASE: Impostazioni = {
     'Ciao {nome}, confermiamo il tuo appuntamento di {data} alle {ora} da {salone} per: {servizio}. A presto!',
   messaggioMese: 'Ciao {nome}, ecco i tuoi appuntamenti di {mese} da {salone}:',
   numeroMagazzino: '',
+  scalaTesto: 1.2,
   passo: 15,
   prefisso: '+39',
   // domenica e lunedì chiuso, sabato orario continuato

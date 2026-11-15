@@ -50,6 +50,11 @@ export default function App() {
       [giornoReminder],
     ) ?? 0;
 
+  // dimensione di testo e controlli in tutta l'app
+  useEffect(() => {
+    document.documentElement.style.setProperty('--scala', String(imp.scalaTesto ?? 1.2));
+  }, [imp.scalaTesto]);
+
   // chiede ad Android di non cancellare i dati locali quando lo spazio scarseggia
   useEffect(() => {
     navigator.storage?.persist?.().catch(() => {});

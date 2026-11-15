@@ -128,6 +128,8 @@ export interface Impostazioni {
   messaggioMese?: string;
   /** numero WhatsApp a cui mandare la preparazione colori */
   numeroMagazzino?: string;
+  /** moltiplicatore della dimensione di testo e controlli (1 = normale) */
+  scalaTesto?: number;
   passo: number;
   prefisso: string;
   /** indice = giorno della settimana (0 = domenica) */
