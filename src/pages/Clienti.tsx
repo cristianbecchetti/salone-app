@@ -14,6 +14,7 @@ import {
 import { dataNum, hm, oggi } from '../lib/tempo';
 import { appuntamentiDelMese, grammiTotali, serviziDi, testoMese, testoRicetta } from '../lib/messaggi';
 import SchedaColoreEditor, { nuovaScheda } from '../SchedaColoreEditor';
+import { SceltaMese } from '../scelte';
 import { Campo, Modale, nomeCliente } from '../ui';
 
 interface DaImportare extends Contatto {
@@ -229,7 +230,7 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
               <section className="scheda">
                 <h3>Invia gli appuntamenti del mese</h3>
                 <div className="riga a-capo">
-                  <input type="month" aria-label="Mese" value={mese} onChange={(e) => e.target.value && setMese(e.target.value)} />
+                  <SceltaMese valore={mese} onChange={setMese} label="Mese da inviare" />
                   <span className="tenue">{delMese.length ? `${delMese.length} appuntamenti` : 'nessun appuntamento in questo mese'}</span>
                 </div>
                 {delMese.length > 0 && (

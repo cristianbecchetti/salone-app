@@ -248,3 +248,39 @@ main.solo { height: 100%; overflow-y: auto; }
   body, .scheda { background: #fff; }
   .prep { break-inside: avoid; }
 }
+
+/* ---------- selettori grandi di data, ora e mese ---------- */
+.scelta-campo { gap: .5rem; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 11rem; justify-content: flex-start; }
+.scelta-campo.ora { min-width: 7rem; }
+.scelta-campo:disabled { opacity: .7; }
+.velo-scelta { z-index: 40; }
+.modale.scelta { width: min(36rem, 100%); }
+.calendario { touch-action: pan-y; user-select: none; }
+.cal-testa { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .5rem; }
+.cal-testa strong { font-size: 1.3rem; }
+.cal-freccia { min-width: 3.75rem; min-height: 3.5rem; font-size: 1.8rem; }
+.cal-griglia { display: grid; grid-template-columns: repeat(7, 1fr); gap: .35rem; }
+.cal-sett { text-align: center; color: var(--tenue); font-size: .9rem; padding: .25rem 0; }
+.cal-giorno { min-height: 3.6rem; padding: 0; font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cal-giorno.fuori { color: var(--tenue); opacity: .55; font-weight: 400; }
+.cal-giorno.giorno-chiuso { background: repeating-linear-gradient(135deg, #f4f0f2 0 .375rem, #ebe5e8 .375rem .75rem); color: var(--tenue); }
+.cal-giorno.oggi { border: 2px solid var(--accento); }
+.cal-giorno.scelto { background: var(--accento); border-color: var(--accento); color: #fff; }
+.cal-legenda { margin-top: .5rem; }
+.griglia-ore { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr)); gap: .4rem; }
+.griglia-ore button { min-height: 3.5rem; font-size: 1.2rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.griglia-ore.minuti { grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr)); }
+.griglia-ore button.scelto, .griglia-mesi button.scelto { background: var(--accento); border-color: var(--accento); color: #fff; }
+.griglia-mesi { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+.griglia-mesi button { min-height: 3.75rem; font-size: 1.1rem; }
+
+/* striscia dei giorni (prenotazione) */
+.striscia { display: flex; gap: .4rem; overflow-x: auto; padding: .25rem .1rem .6rem; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+.giorno-chip { flex: none; flex-direction: column; gap: 0; min-width: 4.4rem; min-height: 4.6rem; padding: .3rem .4rem; line-height: 1.15; scroll-snap-align: center; }
+.giorno-chip span { font-size: .8rem; color: var(--tenue); text-transform: capitalize; }
+.giorno-chip b { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.giorno-chip.oggi { border: 2px solid var(--accento); }
+.giorno-chip.giorno-chiuso { background: repeating-linear-gradient(135deg, #f4f0f2 0 .375rem, #ebe5e8 .375rem .75rem); }
+.giorno-chip.giorno-chiuso b { color: var(--tenue); }
+.giorno-chip.scelto { background: var(--accento); border-color: var(--accento); }
+.giorno-chip.scelto span, .giorno-chip.scelto b { color: #fff; }

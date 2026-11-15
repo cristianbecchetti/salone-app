@@ -6,6 +6,7 @@ import type { Appuntamento, Fascia } from '../types';
 import { allineaPose, fasceSalone, impegniDa, turnoOperatore, verifica } from '../lib/slots';
 import { dataBreve, dataLunga, hm, lunedi, oggi, oraMinuti, piuGiorni } from '../lib/tempo';
 import { nomeCliente } from '../ui';
+import { SceltaData } from '../scelte';
 
 
 /** Intervalli di [da, a] non coperti dalle fasce (zone "chiuso" / fuori turno). */
@@ -77,7 +78,7 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
       <button onClick={() => setGiorno(piuGiorni(giorno, passoGiorni))} aria-label="Avanti">
         ›
       </button>
-      <input type="date" value={giorno} onChange={(e) => e.target.value && setGiorno(e.target.value)} aria-label="Vai alla data" />
+      <SceltaData valore={giorno} onChange={setGiorno} label="Vai alla data" chiuso={(d) => !fasceSalone(d, imp.settimana, eccezioni).length} />
       <h1 className="capitalizza">
         {vista === 'giorno' ? dataLunga(giorno) : `${dataBreve(lun)} – ${dataBreve(piuGiorni(lun, 6))}`}
       </h1>

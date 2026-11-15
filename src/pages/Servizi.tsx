@@ -4,6 +4,7 @@ import { aggiungiSkill, db } from '../db';
 import type { Fase, Servizio } from '../types';
 import { minuti } from '../lib/tempo';
 import { Campo, Modale } from '../ui';
+import { Minuti } from '../scelte';
 
 const NUOVA_FASE: Fase = { nome: '', tipo: 'lavoro', durata: 30, variabile: false };
 const NUOVA_SKILL = '__nuova__';
@@ -156,11 +157,10 @@ export default function Servizi() {
                     </select>
                   </label>
                 )}
-                <label className="spunta">
+                <span className="spunta">
                   Durata standard
-                  <input type="number" min={0} step={5} className="stretto" value={f.durata} onChange={(e) => cambiaFase(i, { durata: num(e.target.value) })} />
-                  min
-                </label>
+                  <Minuti label="durata standard" valore={f.durata} onChange={(n) => cambiaFase(i, { durata: n })} />
+                </span>
                 <label className="spunta">
                   <input
                     type="checkbox"
@@ -170,13 +170,12 @@ export default function Servizi() {
                   varia in base al cliente
                 </label>
                 {f.variabile && (
-                  <label className="spunta">
+                  <span className="spunta">
                     da
-                    <input type="number" min={0} step={5} className="stretto" value={f.min ?? f.durata} onChange={(e) => cambiaFase(i, { min: num(e.target.value) })} />
+                    <Minuti label="durata minima" valore={f.min ?? f.durata} onChange={(n) => cambiaFase(i, { min: n })} />
                     a
-                    <input type="number" min={0} step={5} className="stretto" value={f.max ?? f.durata} onChange={(e) => cambiaFase(i, { max: num(e.target.value) })} />
-                    min
-                  </label>
+                    <Minuti label="durata massima" valore={f.max ?? f.durata} onChange={(n) => cambiaFase(i, { max: n })} />
+                  </span>
                 )}
               </div>
             </div>

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Cliente, Fascia } from './types';
-import { daHm, hm } from './lib/tempo';
+import { SceltaOra } from './scelte';
 
 export const nomeCliente = (c?: Cliente) => (c ? `${c.nome} ${c.cognome}`.trim() : 'Cliente rimosso');
 
@@ -32,15 +32,7 @@ export function Campo(p: { etichetta: string; children: ReactNode; nota?: string
 }
 
 export function Ora(p: { valore: number; onChange: (m: number) => void; label?: string }) {
-  return (
-    <input
-      type="time"
-      step={300}
-      aria-label={p.label}
-      value={hm(p.valore)}
-      onChange={(e) => e.target.value && p.onChange(daHm(e.target.value))}
-    />
-  );
+  return <SceltaOra valore={p.valore} onChange={p.onChange} label={p.label} passo={5} daOra={6} aOra={23} />;
 }
 
 /** Elenco modificabile di fasce orarie. Nessuna fascia = `vuoto` (es. "Chiuso"). */

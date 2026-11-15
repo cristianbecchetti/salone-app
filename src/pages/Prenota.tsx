@@ -7,6 +7,7 @@ import { dataLunga, dataNum, hm, minuti, oggi, oraMinuti, piuGiorni } from '../l
 import { linkWhatsApp, normalizzaTelefono } from '../lib/contatti';
 import { testoConferma } from '../lib/messaggi';
 import { Ora, Pallino, nomeCliente } from '../ui';
+import { SceltaData, SceltaOra, StrisciaGiorni } from '../scelte';
 
 export interface Pre {
   data?: string;
@@ -191,6 +192,9 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
   }
 
   const salone = fasceSalone(data, imp.settimana, eccezioni);
+  const chiusoIl = (d: string) => !fasceSalone(d, imp.settimana, eccezioni).length;
+  // la striscia parte da oggi; se la data scelta è fuori, la tiene vicino al centro
+  const inizioStriscia = data >= oggi() && data <= piuGiorni(oggi(), 20) ? oggi() : piuGiorni(data, -3);
   const slot = bozza.length ? slotDelGiorno(data, delGiorno) : [];
 
   async function primoDisponibile() {
@@ -512,12 +516,13 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
               <button onClick={() => setData(piuGiorni(data, -1))} aria-label="Giorno precedente">
                 ‹
               </button>
-              <input type="date" aria-label="Data dell'appuntamento" value={data} onChange={(e) => e.target.value && setData(e.target.value)} />
+              <SceltaData valore={data} onChange={setData} label="Data dell'appuntamento" chiuso={chiusoIl} />
               <button onClick={() => setData(piuGiorni(data, 1))} aria-label="Giorno successivo">
                 ›
               </button>
               <strong className="capitalizza">{dataLunga(data)}</strong>
             </div>
+            <StrisciaGiorni valore={data} onChange={setData} da={inizioStriscia} chiuso={chiusoIl} />
             <div className="riga a-capo">
               <select value={filtroOp} onChange={(e) => setFiltroOp(Number(e.target.value))} aria-label="Operatore">
                 <option value={0}>Qualsiasi operatore</option>
@@ -562,18 +567,10 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
           <section className="scheda">
             <h3>4 · Riepilogo</h3>
             <div className="riga a-capo">
-              <label className="spunta">
+              <span className="spunta">
                 Inizio
-                <input
-                  type="time"
-                  step={300}
-                  value={inizio == null ? '' : hm(inizio)}
-                  onChange={(e) => {
-                    const [h, m] = e.target.value.split(':').map(Number);
-                    setInizio(e.target.value ? h * 60 + m : null);
-                  }}
-                />
-              </label>
+                <SceltaOra valore={inizio} onChange={setInizio} label="Ora di inizio" passo={imp.passo} />
+              </span>
               {inizio != null && bozza.length > 0 && (
                 <span>
                   fine <strong>{hm(inizio + totale)}</strong>

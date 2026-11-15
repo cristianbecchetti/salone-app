@@ -3,6 +3,7 @@ import { db } from './db';
 import type { SchedaColore } from './types';
 import { grammiTotali } from './lib/messaggi';
 import { Campo, Modale } from './ui';
+import { SceltaData } from './scelte';
 
 const num = (v: string) => Math.max(0, Math.round(Number(v.replace(',', '.')) || 0));
 
@@ -59,7 +60,7 @@ export default function SchedaColoreEditor(p: { scheda: SchedaColore; titolo?: s
     >
       <div className="griglia-form due">
         <Campo etichetta="Data">
-          <input type="date" value={s.data} onChange={(e) => e.target.value && setS({ ...s, data: e.target.value })} />
+          <SceltaData valore={s.data} onChange={(d) => setS({ ...s, data: d })} label="Data della scheda" />
         </Campo>
         <Campo etichetta="Brand">
           <input value={s.brand} placeholder="es. Wella Koleston" onChange={(e) => setS({ ...s, brand: e.target.value })} />

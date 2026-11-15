@@ -4,6 +4,7 @@ import { db, useImpostazioni } from '../db';
 import type { Eccezione, Fascia } from '../types';
 import { GIORNI, ORDINE_GIORNI, dataLunga, hm, oggi } from '../lib/tempo';
 import { Campo, FasceEditor, Modale } from '../ui';
+import { SceltaData } from '../scelte';
 
 export default function Orari() {
   const imp = useImpostazioni();
@@ -94,7 +95,7 @@ export default function Orari() {
           }
         >
           <Campo etichetta="Data">
-            <input type="date" value={e.data} disabled={!e.nuova} onChange={(ev) => setE({ ...e, data: ev.target.value })} />
+            <SceltaData valore={e.data} disabled={!e.nuova} onChange={(d) => setE({ ...e, data: d })} label="Data particolare" />
           </Campo>
           <Campo etichetta="Motivo (facoltativo)">
             <input value={e.nota} placeholder="es. Festivo, ferie, apertura straordinaria" onChange={(ev) => setE({ ...e, nota: ev.target.value })} />

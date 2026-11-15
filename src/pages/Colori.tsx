@@ -7,6 +7,7 @@ import { grammiTotali, ricettaPer, serviziDi, testoPreparazione, testoRicetta, t
 import { dataLunga, dataNum, hm, oggi, piuGiorni } from '../lib/tempo';
 import SchedaColoreEditor, { nuovaScheda } from '../SchedaColoreEditor';
 import { Pallino, nomeCliente } from '../ui';
+import { SceltaData } from '../scelte';
 
 /** La fase da cui serve il colore: la prima fase di un servizio con preparazione. */
 function faseColore(a: Appuntamento, servizi: Servizio[]) {
@@ -62,7 +63,7 @@ export default function Colori({ magazzino = false }: { magazzino?: boolean }) {
         <button className="no-stampa" onClick={() => setGiorno(piuGiorni(giorno, 1))} aria-label="Giorno successivo">
           ›
         </button>
-        <input className="no-stampa" type="date" value={giorno} aria-label="Giorno" onChange={(e) => e.target.value && setGiorno(e.target.value)} />
+        <SceltaData className="no-stampa" valore={giorno} onChange={setGiorno} label="Giorno" />
         <button className="no-stampa" onClick={() => window.print()}>
           Stampa
         </button>

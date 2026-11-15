@@ -5,6 +5,7 @@ import type { Appuntamento } from '../types';
 import { componiMessaggio, linkWhatsApp } from '../lib/contatti';
 import { dataLunga, hm, piuGiorni } from '../lib/tempo';
 import { nomeCliente } from '../ui';
+import { SceltaData } from '../scelte';
 
 export default function Reminder({ predefinito }: { predefinito: string }) {
   const imp = useImpostazioni();
@@ -34,7 +35,7 @@ export default function Reminder({ predefinito }: { predefinito: string }) {
         <button onClick={() => setData(piuGiorni(data, -1))} aria-label="Giorno precedente">
           ‹
         </button>
-        <input type="date" value={data} onChange={(e) => e.target.value && setData(e.target.value)} aria-label="Appuntamenti del" />
+        <SceltaData valore={data} onChange={setData} label="Appuntamenti del" />
         <button onClick={() => setData(piuGiorni(data, 1))} aria-label="Giorno successivo">
           ›
         </button>
