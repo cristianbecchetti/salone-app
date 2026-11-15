@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Appuntamento, Cliente, Impostazioni, SchedaColore } from '../types';
-import { appuntamentiDelMese, grammiTonalita, grammiTotali, ricettaPer, testoConferma, testoMese, testoPreparazione, testoRicetta } from './messaggi';
+import { appuntamentiDelMese, grammiTonalita, grammiTotali, passaFiltroDurata, ricettaPer, testoConferma, testoMese, testoPreparazione, testoRicetta } from './messaggi';
 
 const imp = {
   id: 'main',
@@ -107,5 +107,21 @@ describe('preparazione colori', () => {
       ].join('\n'),
     );
     expect(testoPreparazione('2026-12-05', [])).toBe('Preparazione colori di sabato 5 dicembre\nNessun colore da preparare.');
+  });
+});
+
+describe('filtro per durata dei promemoria', () => {
+  const lungo = (min: number) => ({ ...app(1, '2026-12-05', 600, ['X']), fine: 600 + min });
+  it('di base mostra gli appuntamenti di almeno 1 ora', () => {
+    expect(passaFiltroDurata(lungo(60))).toBe(true);
+    expect(passaFiltroDurata(lungo(105))).toBe(true);
+    expect(passaFiltroDurata(lungo(45))).toBe(false);
+  });
+  it('si può scegliere "meno di", "almeno N ore" o "tutti"', () => {
+    expect(passaFiltroDurata(lungo(30), { verso: 'meno', minuti: 60 })).toBe(true);
+    expect(passaFiltroDurata(lungo(60), { verso: 'meno', minuti: 60 })).toBe(false);
+    expect(passaFiltroDurata(lungo(150), { verso: 'almeno', minuti: 180 })).toBe(false);
+    expect(passaFiltroDurata(lungo(180), { verso: 'almeno', minuti: 180 })).toBe(true);
+    expect(passaFiltroDurata(lungo(10), { verso: 'tutti', minuti: 60 })).toBe(true);
   });
 });

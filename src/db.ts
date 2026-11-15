@@ -18,6 +18,7 @@ export const IMPOSTAZIONI_BASE: Impostazioni = {
   messaggioMese: 'Ciao {nome}, ecco i tuoi appuntamenti di {mese} da {salone}:',
   numeroMagazzino: '',
   scalaTesto: 1.2,
+  reminderFiltro: { verso: 'almeno', minuti: 60 },
   backupModo: 'manuale',
   backupOgniGiorni: 1,
   promemoriaBackupGiorni: 7,

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from './db';
 import { prossimaApertura } from './lib/slots';
+import { passaFiltroDurata } from './lib/messaggi';
 import { oggi } from './lib/tempo';
 import Agenda from './pages/Agenda';
 import Prenota, { type Pre } from './pages/Prenota';
@@ -46,9 +47,9 @@ export default function App() {
         db.appuntamenti
           .where('data')
           .equals(giornoReminder)
-          .filter((a) => a.stato === 'prenotato' && !a.reminderInviatoIl)
+          .filter((a) => a.stato === 'prenotato' && !a.reminderInviatoIl && passaFiltroDurata(a, imp.reminderFiltro))
           .count(),
-      [giornoReminder],
+      [giornoReminder, imp.reminderFiltro?.verso, imp.reminderFiltro?.minuti],
     ) ?? 0;
 
   // dimensione di testo e controlli in tutta l'app

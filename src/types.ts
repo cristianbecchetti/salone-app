@@ -163,6 +163,8 @@ export interface Impostazioni {
   driveUltimoFile?: string;
   /** Drive: ultimo errore (vuoto se l'ultimo tentativo è riuscito) */
   driveErrore?: string;
+  /** pagina Reminder: mostra tutti, oppure solo gli appuntamenti di almeno / meno di N minuti */
+  reminderFiltro?: { verso: 'tutti' | 'almeno' | 'meno'; minuti: number };
   /** moltiplicatore della dimensione di testo e controlli (1 = normale) */
   scalaTesto?: number;
   passo: number;

@@ -3,10 +3,10 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from '../db';
 import type { Appuntamento } from '../types';
 import { componiMessaggio } from '../lib/contatti';
-import { parametriAppuntamento } from '../lib/messaggi';
+import { FILTRO_DURATA_BASE, parametriAppuntamento, passaFiltroDurata, type FiltroDurata } from '../lib/messaggi';
 import { inviaWhatsApp, modoApi } from '../lib/whatsapp';
 import type { Cliente } from '../types';
-import { dataLunga, hm, piuGiorni } from '../lib/tempo';
+import { dataLunga, hm, minuti, piuGiorni } from '../lib/tempo';
 import { nomeCliente } from '../ui';
 import { SceltaData } from '../scelte';
 
@@ -14,9 +14,14 @@ export default function Reminder({ predefinito }: { predefinito: string }) {
   const imp = useImpostazioni();
   const [data, setData] = useState(predefinito);
   const clienti = useLiveQuery(() => db.clienti.toArray(), []) ?? [];
-  const lista = (useLiveQuery(() => db.appuntamenti.where('data').equals(data).toArray(), [data]) ?? [])
+  const delGiorno = (useLiveQuery(() => db.appuntamenti.where('data').equals(data).toArray(), [data]) ?? [])
     .filter((a) => a.stato === 'prenotato')
     .sort((a, b) => a.inizio - b.inizio);
+  // filtro per durata (di base: almeno 1 ora); la scelta resta memorizzata
+  const filtro = imp.reminderFiltro ?? FILTRO_DURATA_BASE;
+  const lista = delGiorno.filter((a) => passaFiltroDurata(a, filtro));
+  const esclusi = delGiorno.length - lista.length;
+  const cambiaFiltro = (f: Partial<FiltroDurata>) => db.impostazioni.update('main', { reminderFiltro: { ...filtro, ...f } });
 
   const testo = (a: Appuntamento) =>
     componiMessaggio(imp.messaggio, {
@@ -61,6 +66,28 @@ export default function Reminder({ predefinito }: { predefinito: string }) {
         </button>
         {data !== predefinito && <button onClick={() => setData(predefinito)}>Prossima apertura</button>}
       </header>
+      <div className="riga a-capo filtro-durata">
+        <span>Mostra gli appuntamenti</span>
+        <select aria-label="Filtro durata" value={filtro.verso} onChange={(e) => cambiaFiltro({ verso: e.target.value as FiltroDurata['verso'] })}>
+          <option value="almeno">di almeno</option>
+          <option value="meno">di meno di</option>
+          <option value="tutti">tutti</option>
+        </select>
+        {filtro.verso !== 'tutti' && (
+          <select aria-label="Durata" value={filtro.minuti} onChange={(e) => cambiaFiltro({ minuti: Number(e.target.value) })}>
+            {[30, 45, 60, 90, 120, 180, 240].map((m) => (
+              <option key={m} value={m}>
+                {minuti(m)}
+              </option>
+            ))}
+          </select>
+        )}
+        {esclusi > 0 && (
+          <span className="tenue">
+            ({esclusi} {esclusi === 1 ? 'appuntamento escluso' : 'appuntamenti esclusi'} dal filtro)
+          </span>
+        )}
+      </div>
       <p className="nota">
         Appuntamenti di <b className="capitalizza">{dataLunga(data)}</b>
         {data === predefinito && ' (prossimo giorno di apertura)'}: {lista.length ? `${daInviare} da avvisare su ${lista.length}` : 'nessuno'}.
@@ -102,7 +129,11 @@ export default function Reminder({ predefinito }: { predefinito: string }) {
             </div>
           );
         })}
-        {!lista.length && <p className="tenue">Nessun appuntamento prenotato in questa data.</p>}
+        {!lista.length && (
+          <p className="tenue">
+            {delGiorno.length ? 'Nessun appuntamento corrisponde al filtro di durata.' : 'Nessun appuntamento prenotato in questa data.'}
+          </p>
+        )}
       </div>
     </div>
   );

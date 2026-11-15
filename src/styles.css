@@ -321,3 +321,6 @@ pre.codice { background: #2b2430; color: #f3e8ef; padding: .75rem; border-radius
 .blocco.evidenziato { z-index: 3; outline: 3px solid var(--k); outline-offset: 1px; }
 .blocco.attenuato { opacity: .3; }
 .voce-sett .sigla { margin-right: 0.3rem; vertical-align: middle; }
+
+/* reminder: filtro per durata */
+.filtro-durata { background: var(--accento-chiaro); border-radius: var(--raggio); padding: 0.4rem 0.75rem; margin-bottom: 0.75rem; }

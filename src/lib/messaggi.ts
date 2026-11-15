@@ -120,3 +120,19 @@ export function parametriPreparazione(data: string, voci: VocePreparazione[]) {
     .join('; ');
   return [dataLunga(data), elenco || 'nessun colore da preparare'];
 }
+
+/** Filtro per durata dei promemoria: tutti, almeno N minuti, oppure meno di N minuti. */
+export interface FiltroDurata {
+  verso: 'tutti' | 'almeno' | 'meno';
+  minuti: number;
+}
+export const FILTRO_DURATA_BASE: FiltroDurata = { verso: 'almeno', minuti: 60 };
+
+/** Durata complessiva dell'appuntamento, pose comprese. */
+export const durataAppuntamento = (a: Appuntamento) => a.fine - a.inizio;
+
+export function passaFiltroDurata(a: Appuntamento, f: FiltroDurata = FILTRO_DURATA_BASE) {
+  if (f.verso === 'tutti') return true;
+  const d = durataAppuntamento(a);
+  return f.verso === 'almeno' ? d >= f.minuti : d < f.minuti;
+}
