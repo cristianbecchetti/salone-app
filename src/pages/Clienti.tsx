@@ -15,7 +15,7 @@ import { dataNum, hm, oggi } from '../lib/tempo';
 import { appuntamentiDelMese, grammiTotali, parametriMese, serviziDi, testoMese, testoRicetta } from '../lib/messaggi';
 import { inviaWhatsApp, modoApi } from '../lib/whatsapp';
 import SchedaColoreEditor, { nuovaScheda } from '../SchedaColoreEditor';
-import { SceltaMese } from '../scelte';
+import { SceltaMese, Telefono } from '../scelte';
 import { Campo, Modale, nomeCliente } from '../ui';
 
 interface DaImportare extends Contatto {
@@ -214,8 +214,8 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
                   <input value={scheda.cognome} onChange={(e) => setScheda({ ...scheda, cognome: e.target.value })} />
                 </Campo>
               </div>
-              <Campo etichetta="Cellulare (WhatsApp)" nota={`Senza prefisso viene aggiunto ${imp.prefisso}`}>
-                <input inputMode="tel" value={scheda.telefono} onChange={(e) => setScheda({ ...scheda, telefono: e.target.value })} />
+              <Campo etichetta="Cellulare (WhatsApp)" nota="Scegli il paese: il numero viene salvato con il prefisso internazionale.">
+                <Telefono valore={scheda.telefono} prefissoBase={imp.prefisso} label="cellulare" onChange={(t) => setScheda({ ...scheda, telefono: t })} />
               </Campo>
               <Campo etichetta="Note (preferenze, allergie…)">
                 <textarea rows={3} value={scheda.note} onChange={(e) => setScheda({ ...scheda, note: e.target.value })} />

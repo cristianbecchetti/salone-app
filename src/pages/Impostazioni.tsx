@@ -4,7 +4,8 @@ import { db, ripristina, useImpostazioni } from '../db';
 import { backupSuDrive, esportaSuFile } from '../BackupAutomatico';
 import { avvisoEmail, codiceScript, driveConfigurato, verificaDrive } from '../lib/backup';
 import type { Impostazioni as Imp } from '../types';
-import { componiMessaggio } from '../lib/contatti';
+import { PAESI, bandiera, componiMessaggio } from '../lib/contatti';
+import { Telefono } from '../scelte';
 import { dataLunga, oggi, piuGiorni } from '../lib/tempo';
 import { Campo } from '../ui';
 import { TEMPLATE_PREDEFINITI, TESTI_TEMPLATE, inviaTemplate, mancaConfigurazione, type TipoMessaggio } from '../lib/whatsapp';
@@ -117,7 +118,13 @@ export default function Impostazioni() {
             <input value={imp.nomeSalone} onChange={(e) => salva({ nomeSalone: e.target.value })} />
           </Campo>
           <Campo etichetta="Prefisso telefonico predefinito">
-            <input value={imp.prefisso} inputMode="tel" onChange={(e) => salva({ prefisso: e.target.value.trim() })} />
+            <select value={imp.prefisso} onChange={(e) => salva({ prefisso: e.target.value })}>
+              {PAESI.map((x) => (
+                <option key={x.iso} value={x.prefisso}>
+                  {bandiera(x.iso)} {x.prefisso} {x.nome}
+                </option>
+              ))}
+            </select>
           </Campo>
           <Campo etichetta="Dimensione testo e pulsanti">
             <select value={imp.scalaTesto ?? 1.2} onChange={(e) => salva({ scalaTesto: Number(e.target.value) })}>
@@ -165,7 +172,7 @@ export default function Impostazioni() {
       <section className="scheda">
         <h3>Magazzino</h3>
         <Campo etichetta="Numero WhatsApp del magazzino" nota="Usato da 'Invia al magazzino' nella pagina Colori. Vuoto = WhatsApp chiede a chi inviare.">
-          <input inputMode="tel" value={imp.numeroMagazzino} onChange={(e) => salva({ numeroMagazzino: e.target.value })} />
+          <Telefono valore={imp.numeroMagazzino ?? ''} prefissoBase={imp.prefisso} label="numero del magazzino" onChange={(t) => salva({ numeroMagazzino: t })} />
         </Campo>
         <p className="tenue">
           Vista a schermo intero della sola preparazione colori: aggiungi <b>#magazzino</b> in fondo all'indirizzo dell'app.
@@ -232,7 +239,7 @@ export default function Impostazioni() {
             ))}
             <h4>Prova</h4>
             <div className="riga a-capo">
-              <input inputMode="tel" placeholder="Numero di prova, es. +39 333 1234567" value={numeroProva} onChange={(e) => setNumeroProva(e.target.value)} />
+              <Telefono valore={numeroProva} prefissoBase={imp.prefisso} label="numero di prova" onChange={setNumeroProva} />
               <button disabled={!numeroProva.trim()} onClick={prova}>
                 Invia messaggio di prova
               </button>

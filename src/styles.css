@@ -330,3 +330,8 @@ pre.codice { background: #2b2430; color: #f3e8ef; padding: .75rem; border-radius
 .fasce-orarie .chip { min-height: 3rem; }
 .fascia-ore { font-size: .82em; opacity: .8; font-variant-numeric: tabular-nums; margin-left: .25rem; }
 .nome-fascia { width: 11rem; }
+
+/* numero di telefono con paese */
+.telefono { display: flex; gap: 0.4rem; width: 100%; }
+.telefono select { flex: 0 0 auto; width: 11.5rem; }
+.telefono input { flex: 1 1 auto; min-width: 0; }

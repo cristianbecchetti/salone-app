@@ -144,3 +144,100 @@ export function componiMessaggio(modello: string, valori: Record<string, string>
 /** Apre WhatsApp sulla chat del numero con il testo già scritto (l'invio resta manuale). */
 export const linkWhatsApp = (telefono: string, testo = '') =>
   `https://wa.me/${telefono.replace(/\D/g, '')}${testo ? `?text=${encodeURIComponent(testo)}` : ''}`;
+
+/** Paesi più frequenti con prefisso internazionale. L'Italia per prima, poi in ordine alfabetico. */
+export const PAESI: { iso: string; nome: string; prefisso: string }[] = [
+  { iso: 'IT', nome: 'Italia', prefisso: '+39' },
+  ...[
+    { iso: 'AL', nome: 'Albania', prefisso: '+355' },
+    { iso: 'DZ', nome: 'Algeria', prefisso: '+213' },
+    { iso: 'SA', nome: 'Arabia Saudita', prefisso: '+966' },
+    { iso: 'AR', nome: 'Argentina', prefisso: '+54' },
+    { iso: 'AU', nome: 'Australia', prefisso: '+61' },
+    { iso: 'AT', nome: 'Austria', prefisso: '+43' },
+    { iso: 'BD', nome: 'Bangladesh', prefisso: '+880' },
+    { iso: 'BE', nome: 'Belgio', prefisso: '+32' },
+    { iso: 'BA', nome: 'Bosnia ed Erzegovina', prefisso: '+387' },
+    { iso: 'BR', nome: 'Brasile', prefisso: '+55' },
+    { iso: 'BG', nome: 'Bulgaria', prefisso: '+359' },
+    { iso: 'CL', nome: 'Cile', prefisso: '+56' },
+    { iso: 'CN', nome: 'Cina', prefisso: '+86' },
+    { iso: 'CO', nome: 'Colombia', prefisso: '+57' },
+    { iso: 'KR', nome: 'Corea del Sud', prefisso: '+82' },
+    { iso: 'HR', nome: 'Croazia', prefisso: '+385' },
+    { iso: 'DK', nome: 'Danimarca', prefisso: '+45' },
+    { iso: 'EC', nome: 'Ecuador', prefisso: '+593' },
+    { iso: 'EG', nome: 'Egitto', prefisso: '+20' },
+    { iso: 'AE', nome: 'Emirati Arabi Uniti', prefisso: '+971' },
+    { iso: 'PH', nome: 'Filippine', prefisso: '+63' },
+    { iso: 'FI', nome: 'Finlandia', prefisso: '+358' },
+    { iso: 'FR', nome: 'Francia', prefisso: '+33' },
+    { iso: 'DE', nome: 'Germania', prefisso: '+49' },
+    { iso: 'GH', nome: 'Ghana', prefisso: '+233' },
+    { iso: 'JP', nome: 'Giappone', prefisso: '+81' },
+    { iso: 'GR', nome: 'Grecia', prefisso: '+30' },
+    { iso: 'IN', nome: 'India', prefisso: '+91' },
+    { iso: 'IE', nome: 'Irlanda', prefisso: '+353' },
+    { iso: 'IL', nome: 'Israele', prefisso: '+972' },
+    { iso: 'XK', nome: 'Kosovo', prefisso: '+383' },
+    { iso: 'LU', nome: 'Lussemburgo', prefisso: '+352' },
+    { iso: 'MK', nome: 'Macedonia del Nord', prefisso: '+389' },
+    { iso: 'MT', nome: 'Malta', prefisso: '+356' },
+    { iso: 'MA', nome: 'Marocco', prefisso: '+212' },
+    { iso: 'MX', nome: 'Messico', prefisso: '+52' },
+    { iso: 'MD', nome: 'Moldavia', prefisso: '+373' },
+    { iso: 'MC', nome: 'Monaco', prefisso: '+377' },
+    { iso: 'ME', nome: 'Montenegro', prefisso: '+382' },
+    { iso: 'NG', nome: 'Nigeria', prefisso: '+234' },
+    { iso: 'NO', nome: 'Norvegia', prefisso: '+47' },
+    { iso: 'NL', nome: 'Paesi Bassi', prefisso: '+31' },
+    { iso: 'PK', nome: 'Pakistan', prefisso: '+92' },
+    { iso: 'PE', nome: 'Perù', prefisso: '+51' },
+    { iso: 'PL', nome: 'Polonia', prefisso: '+48' },
+    { iso: 'PT', nome: 'Portogallo', prefisso: '+351' },
+    { iso: 'GB', nome: 'Regno Unito', prefisso: '+44' },
+    { iso: 'CZ', nome: 'Repubblica Ceca', prefisso: '+420' },
+    { iso: 'RO', nome: 'Romania', prefisso: '+40' },
+    { iso: 'RU', nome: 'Russia', prefisso: '+7' },
+    { iso: 'SM', nome: 'San Marino', prefisso: '+378' },
+    { iso: 'SN', nome: 'Senegal', prefisso: '+221' },
+    { iso: 'RS', nome: 'Serbia', prefisso: '+381' },
+    { iso: 'SK', nome: 'Slovacchia', prefisso: '+421' },
+    { iso: 'SI', nome: 'Slovenia', prefisso: '+386' },
+    { iso: 'ES', nome: 'Spagna', prefisso: '+34' },
+    { iso: 'LK', nome: 'Sri Lanka', prefisso: '+94' },
+    { iso: 'US', nome: 'Stati Uniti / Canada', prefisso: '+1' },
+    { iso: 'SE', nome: 'Svezia', prefisso: '+46' },
+    { iso: 'CH', nome: 'Svizzera', prefisso: '+41' },
+    { iso: 'TN', nome: 'Tunisia', prefisso: '+216' },
+    { iso: 'TR', nome: 'Turchia', prefisso: '+90' },
+    { iso: 'UA', nome: 'Ucraina', prefisso: '+380' },
+    { iso: 'HU', nome: 'Ungheria', prefisso: '+36' },
+    { iso: 'VA', nome: 'Vaticano', prefisso: '+379' },
+    { iso: 'VE', nome: 'Venezuela', prefisso: '+58' },
+  ].sort((a, b) => a.nome.localeCompare(b.nome, 'it')),
+];
+
+/** Bandiera emoji dal codice ISO del paese (es. IT → 🇮🇹). */
+export const bandiera = (iso: string) => String.fromCodePoint(...[...iso.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+
+/**
+ * Divide un numero in prefisso internazionale e numero nazionale (solo cifre).
+ * Riconosce "+41 79…", "0041 79…" e i numeri senza prefisso (a cui assegna `prefissoBase`).
+ */
+export function dividiTelefono(valore: string, prefissoBase = '+39'): { prefisso: string; numero: string } {
+  let t = (valore ?? '').trim().replace(/[^\d+]/g, '');
+  if (t.startsWith('00')) t = '+' + t.slice(2);
+  if (!t.startsWith('+')) return { prefisso: prefissoBase, numero: t.replace(/\D/g, '') };
+  const cifre = t.slice(1).replace(/\D/g, '');
+  // il prefisso più lungo che corrisponde (es. +378 San Marino prima di +3…)
+  const paese = [...PAESI].sort((a, b) => b.prefisso.length - a.prefisso.length).find((p) => cifre.startsWith(p.prefisso.slice(1)));
+  if (paese) return { prefisso: paese.prefisso, numero: cifre.slice(paese.prefisso.length - 1) };
+  return { prefisso: prefissoBase, numero: cifre };
+}
+
+/** Unisce prefisso e numero nel formato salvato (+39333…); vuoto se manca il numero. */
+export const unisciTelefono = (prefisso: string, numero: string) => {
+  const n = numero.replace(/\D/g, '');
+  return n ? `${prefisso}${n}` : '';
+};

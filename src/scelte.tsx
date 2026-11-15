@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { aData, hm, iso, oggi, piuGiorni } from './lib/tempo';
+import { PAESI, bandiera, dividiTelefono, unisciTelefono } from './lib/contatti';
 
 const SETTIMANA = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 const MESI = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
@@ -320,6 +321,67 @@ export function Minuti(p: { valore: number; onChange: (n: number) => void; label
       <button type="button" onClick={() => p.onChange(p.valore + passo)} aria-label={`Aumenta ${p.label}`}>
         +
       </button>
+    </span>
+  );
+}
+
+/**
+ * Numero di cellulare con scelta del paese (prefisso internazionale, di base +39 Italia).
+ * Restituisce sempre il numero completo, es. "+393331234567" (vuoto se manca il numero).
+ * Incollando un numero con prefisso ("+41…" o "0041…") il paese si imposta da solo.
+ */
+export function Telefono(p: { valore: string; onChange: (v: string) => void; prefissoBase?: string; label?: string; placeholder?: string }) {
+  const base = p.prefissoBase || '+39';
+  const diviso = dividiTelefono(p.valore, base);
+  const [prefisso, setPrefisso] = useState(diviso.prefisso);
+  // testo provvisorio mentre si digita un prefisso internazionale non ancora completo (es. "+4")
+  const [bozza, setBozza] = useState<string | null>(null);
+  useEffect(() => {
+    if (p.valore) setPrefisso(dividiTelefono(p.valore, base).prefisso);
+  }, [p.valore, base]);
+  const numero = p.valore ? diviso.numero : '';
+
+  function scrivi(testo: string) {
+    const t = testo.trim();
+    if (t.startsWith('+') || t.startsWith('00')) {
+      const d = dividiTelefono(t, '');
+      if (!d.prefisso) {
+        setBozza(testo);
+        return;
+      }
+      setBozza(null);
+      setPrefisso(d.prefisso);
+      p.onChange(unisciTelefono(d.prefisso, d.numero));
+      return;
+    }
+    setBozza(null);
+    p.onChange(unisciTelefono(prefisso, testo));
+  }
+
+  return (
+    <span className="telefono">
+      <select
+        aria-label={`Paese${p.label ? ` di ${p.label}` : ''}`}
+        value={prefisso}
+        onChange={(e) => {
+          setPrefisso(e.target.value);
+          p.onChange(unisciTelefono(e.target.value, numero));
+        }}
+      >
+        {PAESI.map((x) => (
+          <option key={x.iso} value={x.prefisso}>
+            {bandiera(x.iso)} {x.prefisso} {x.nome}
+          </option>
+        ))}
+      </select>
+      <input
+        inputMode="tel"
+        autoComplete="tel-national"
+        aria-label={p.label ?? 'Numero di telefono'}
+        placeholder={p.placeholder ?? (prefisso === '+39' ? '333 1234567' : 'Numero')}
+        value={bozza ?? numero}
+        onChange={(e) => scrivi(e.target.value)}
+      />
     </span>
   );
 }

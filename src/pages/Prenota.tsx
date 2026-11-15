@@ -8,7 +8,7 @@ import { normalizzaTelefono } from '../lib/contatti';
 import { inviaWhatsApp } from '../lib/whatsapp';
 import { parametriAppuntamento, testoConferma } from '../lib/messaggi';
 import { Ora, Pallino, nomeCliente } from '../ui';
-import { SceltaData, SceltaOra, StrisciaGiorni } from '../scelte';
+import { SceltaData, SceltaOra, StrisciaGiorni, Telefono } from '../scelte';
 
 export interface Pre {
   data?: string;
@@ -428,7 +428,13 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
               <div className="griglia-form">
                 <input placeholder="Nome" value={nuovo.nome} onChange={(e) => setNuovo({ ...nuovo, nome: e.target.value })} autoFocus />
                 <input placeholder="Cognome" value={nuovo.cognome} onChange={(e) => setNuovo({ ...nuovo, cognome: e.target.value })} />
-                <input placeholder="Cellulare" inputMode="tel" value={nuovo.telefono} onChange={(e) => setNuovo({ ...nuovo, telefono: e.target.value })} />
+                <Telefono
+                  valore={nuovo.telefono}
+                  prefissoBase={imp.prefisso}
+                  label="cellulare"
+                  placeholder="Cellulare"
+                  onChange={(t) => setNuovo({ ...nuovo, telefono: t })}
+                />
                 <div className="riga">
                   <button className="primario" onClick={creaCliente}>
                     Aggiungi cliente
