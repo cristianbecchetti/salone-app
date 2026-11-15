@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from '../db';
 import type { Appuntamento, SchedaColore, Servizio } from '../types';
 import { linkWhatsApp } from '../lib/contatti';
-import { grammiTotali, ricettaPer, serviziDi, testoPreparazione, testoRicetta, type VocePreparazione } from '../lib/messaggi';
+import { grammiTonalita, grammiTotali, ricettaPer, serviziDi, testoPreparazione, testoRicetta, type VocePreparazione } from '../lib/messaggi';
 import { dataLunga, dataNum, hm, oggi, piuGiorni } from '../lib/tempo';
 import SchedaColoreEditor, { nuovaScheda } from '../SchedaColoreEditor';
 import { Pallino, nomeCliente } from '../ui';
@@ -128,14 +128,22 @@ export default function Colori({ magazzino = false }: { magazzino?: boolean }) {
                           <td className="grammi">{c.grammi} g</td>
                         </tr>
                       ))}
+                      <tr className="subtotale">
+                        <td>Subtotale tonalità</td>
+                        <td className="grammi">{grammiTonalita(v.scheda)} g</td>
+                      </tr>
                       {v.scheda.ossigeno && (
                         <tr>
                           <td>Ossigeno {v.scheda.ossigeno}</td>
                           <td className="grammi">{v.scheda.grammiOssigeno} g</td>
                         </tr>
                       )}
+                      <tr className="subtotale">
+                        <td>Subtotale ossigeno</td>
+                        <td className="grammi">{v.scheda.grammiOssigeno || 0} g</td>
+                      </tr>
                       <tr className="totale">
-                        <td>Totale</td>
+                        <td>Totale colore + ossigeno</td>
                         <td className="grammi">{grammiTotali(v.scheda)} g</td>
                       </tr>
                     </tbody>

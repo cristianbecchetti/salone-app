@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Appuntamento, Cliente, Impostazioni, SchedaColore } from '../types';
-import { appuntamentiDelMese, grammiTotali, ricettaPer, testoConferma, testoMese, testoPreparazione, testoRicetta } from './messaggi';
+import { appuntamentiDelMese, grammiTonalita, grammiTotali, ricettaPer, testoConferma, testoMese, testoPreparazione, testoRicetta } from './messaggi';
 
 const imp = {
   id: 'main',
@@ -71,6 +71,7 @@ describe('ricette colore', () => {
 
   it('descrive la ricetta e somma i grammi', () => {
     expect(testoRicetta(scheda(1, '2026-10-01'))).toBe('Wella · 7/1 30 g + 8/0 20 g · ossigeno 20 vol 75 g');
+    expect(grammiTonalita(scheda(1, '2026-10-01'))).toBe(50);
     expect(grammiTotali(scheda(1, '2026-10-01'))).toBe(125);
   });
 

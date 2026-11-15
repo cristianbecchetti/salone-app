@@ -54,8 +54,11 @@ export function testoRicetta(s: SchedaColore) {
   return [s.brand.trim(), comp, oss].filter(Boolean).join(' · ');
 }
 
-export const grammiTotali = (s: SchedaColore) =>
-  s.componenti.reduce((t, c) => t + (c.grammi || 0), 0) + (s.grammiOssigeno || 0);
+/** Somma dei grammi delle tonalità (senza ossigeno). */
+export const grammiTonalita = (s: SchedaColore) => s.componenti.reduce((t, c) => t + (c.grammi || 0), 0);
+
+/** Totale complessivo: tonalità + ossigeno. */
+export const grammiTotali = (s: SchedaColore) => grammiTonalita(s) + (s.grammiOssigeno || 0);
 
 /**
  * La ricetta da preparare per un appuntamento: quella registrata per l'appuntamento stesso,

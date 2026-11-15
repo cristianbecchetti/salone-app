@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { db } from './db';
 import type { SchedaColore } from './types';
-import { grammiTotali } from './lib/messaggi';
+import { grammiTonalita, grammiTotali } from './lib/messaggi';
 import { Campo, Modale } from './ui';
 import { SceltaData } from './scelte';
 
@@ -50,7 +50,9 @@ export default function SchedaColoreEditor(p: { scheda: SchedaColore; titolo?: s
               Elimina
             </button>
           )}
-          <span className="tenue">Totale {grammiTotali(s)} g</span>
+          <span className="totale-scheda">
+            Totale colore + ossigeno <b>{grammiTotali(s)} g</b>
+          </span>
           <span className="spazio" />
           <button className="primario" onClick={salva}>
             Salva
@@ -90,7 +92,11 @@ export default function SchedaColoreEditor(p: { scheda: SchedaColore; titolo?: s
           </button>
         </div>
       ))}
-      <button onClick={() => setS({ ...s, componenti: [...s.componenti, { tonalita: '', grammi: 0 }] })}>+ Tonalità</button>
+      <div className="riga subtotale">
+        <button onClick={() => setS({ ...s, componenti: [...s.componenti, { tonalita: '', grammi: 0 }] })}>+ Tonalità</button>
+        <span className="spazio" />
+        Subtotale tonalità <b>{grammiTonalita(s)} g</b>
+      </div>
       <h4>Ossigeno</h4>
       <div className="riga">
         <input className="cresce" placeholder="es. 20 vol / 6%" aria-label="Ossigeno" value={s.ossigeno} onChange={(e) => setS({ ...s, ossigeno: e.target.value })} />
@@ -103,6 +109,10 @@ export default function SchedaColoreEditor(p: { scheda: SchedaColore; titolo?: s
           onChange={(e) => setS({ ...s, grammiOssigeno: num(e.target.value) })}
         />
         <span>g</span>
+      </div>
+      <div className="riga subtotale">
+        <span className="spazio" />
+        Subtotale ossigeno <b>{s.grammiOssigeno || 0} g</b>
       </div>
       <Campo etichetta="Note (posa, zone, risultato…)">
         <textarea rows={2} value={s.note} onChange={(e) => setS({ ...s, note: e.target.value })} />
