@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { aggiungiSkill, cambiaSkill, db, useImpostazioni } from '../db';
 import type { Operatore, Skill } from '../types';
 import { GIORNI, ORDINE_GIORNI, dataNum, oggi } from '../lib/tempo';
-import { Campo, FasceEditor, Modale, Pallino } from '../ui';
+import { Campo, FasceEditor, Modale, Ora, Pallino } from '../ui';
 import { SceltaData } from '../scelte';
 
 const COLORI = ['#8e4a7b', '#2f7d8c', '#b8672f', '#4f7a3a', '#5a5fb0', '#b0475a', '#7a6a2f', '#3d6e9e'];
@@ -253,14 +253,36 @@ export default function Personale() {
           {o.assenze.map((a, i) => {
             const cambia = (pezzo: Partial<typeof a>) => setO({ ...o, assenze: o.assenze.map((x, j) => (j === i ? { ...x, ...pezzo } : x)) });
             return (
-              <div className="riga a-capo" key={i}>
-                <SceltaData valore={a.dal} label="Assente dal" onChange={(d) => cambia({ dal: d, al: a.al < d ? d : a.al })} />
-                <span>–</span>
-                <SceltaData valore={a.al} min={a.dal} label="Assente fino al" onChange={(d) => cambia({ al: d })} />
-                <input className="cresce" placeholder="Motivo" value={a.nota} onChange={(e) => cambia({ nota: e.target.value })} />
-                <button className="icona" aria-label="Rimuovi assenza" onClick={() => setO({ ...o, assenze: o.assenze.filter((_, j) => j !== i) })}>
-                  ✕
-                </button>
+              <div className="assenza" key={i}>
+                <div className="riga a-capo">
+                  <SceltaData valore={a.dal} label="Assente dal" onChange={(d) => cambia({ dal: d, al: a.al < d ? d : a.al })} />
+                  <span>–</span>
+                  <SceltaData valore={a.al} min={a.dal} label="Assente fino al" onChange={(d) => cambia({ al: d })} />
+                  <input className="cresce" placeholder="Motivo" value={a.nota} onChange={(e) => cambia({ nota: e.target.value })} />
+                  <button className="icona" aria-label="Rimuovi assenza" onClick={() => setO({ ...o, assenze: o.assenze.filter((_, j) => j !== i) })}>
+                    ✕
+                  </button>
+                </div>
+                <div className="riga a-capo">
+                  <label className="spunta">
+                    <input
+                      type="checkbox"
+                      checked={a.da == null}
+                      onChange={(e) => cambia(e.target.checked ? { da: undefined, a: undefined } : { da: 14 * 60, a: 16 * 60 })}
+                    />
+                    Tutto il giorno
+                  </label>
+                  {a.da != null && (
+                    <>
+                      <span>dalle</span>
+                      <Ora valore={a.da} label="Assente dalle" onChange={(m) => cambia({ da: m })} />
+                      <span>alle</span>
+                      <Ora valore={a.a ?? a.da + 60} label="Assente fino alle" onChange={(m) => cambia({ a: m })} />
+                      {(a.a ?? 0) <= a.da && <span className="etichetta gialla">la fine deve essere dopo l'inizio</span>}
+                      {a.dal !== a.al && <span className="tenue">ogni giorno del periodo</span>}
+                    </>
+                  )}
+                </div>
               </div>
             );
           })}

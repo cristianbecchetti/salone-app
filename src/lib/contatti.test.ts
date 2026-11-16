@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PAESI, bandiera, dividiTelefono, normalizzaTelefono, unisciTelefono } from './contatti';
+import { PAESI, bandiera, dividiTelefono, normalizzaTelefono, trovaDoppione, unisciTelefono } from './contatti';
 
 describe('numero di telefono con prefisso del paese', () => {
   it("l'Italia è il primo paese, gli altri in ordine alfabetico, senza doppioni", () => {
@@ -31,5 +31,27 @@ describe('numero di telefono con prefisso del paese', () => {
   it('bandiera dal codice del paese', () => {
     expect(bandiera('IT')).toBe('🇮🇹');
     expect(bandiera('ch')).toBe('🇨🇭');
+  });
+});
+
+describe('clienti già presenti', () => {
+  const clienti = [
+    { id: 1, nome: 'Maria', cognome: 'Rossi', telefono: '+393331234567' },
+    { id: 2, nome: 'Laura', cognome: 'Bianchi', telefono: '' },
+  ];
+  it('stesso numero (scritto in qualsiasi modo) → bloccato', () => {
+    expect(trovaDoppione({ nome: 'Mary', cognome: 'R', telefono: '333 123 4567' }, clienti)?.motivo).toBe('telefono');
+    expect(trovaDoppione({ nome: 'X', cognome: 'Y', telefono: '0039 333 1234567' }, clienti)?.cliente.id).toBe(1);
+  });
+  it('stesso nome e cognome (maiuscole, accenti, spazi) senza numero da una parte → bloccato', () => {
+    expect(trovaDoppione({ nome: ' maria ', cognome: 'ROSSI', telefono: '' }, clienti)?.motivo).toBe('nome');
+    expect(trovaDoppione({ nome: 'Laura', cognome: 'Bianchì', telefono: '+393470000000' }, clienti)?.motivo).toBe('nome');
+  });
+  it('stesso nome ma numero diverso → omonimo da confermare', () => {
+    expect(trovaDoppione({ nome: 'Maria', cognome: 'Rossi', telefono: '+393470000000' }, clienti)?.motivo).toBe('omonimo');
+  });
+  it('nessun doppione per un cliente nuovo o per sé stesso in modifica', () => {
+    expect(trovaDoppione({ nome: 'Sara', cognome: 'Verdi', telefono: '+393479999999' }, clienti)).toBeNull();
+    expect(trovaDoppione({ id: 1, nome: 'Maria', cognome: 'Rossi', telefono: '+393331234567' }, clienti)).toBeNull();
   });
 });

@@ -42,6 +42,9 @@ export interface Assenza {
   dal: string;
   al: string;
   nota: string;
+  /** solo una parte della giornata (minuti dalla mezzanotte), ogni giorno del periodo; assenti = tutto il giorno */
+  da?: number;
+  a?: number;
 }
 
 export interface Operatore {

@@ -32,14 +32,41 @@ export function prossimaApertura(dopo: string, settimana: Fascia[][], eccezioni:
   return piuGiorni(dopo, 1);
 }
 
-export const assente = (op: Operatore, data: string) =>
-  op.assenze.some((a) => a.dal <= data && data <= a.al);
+/** Toglie dalle fasce gli intervalli indicati (es. il turno meno un'assenza dalle 14 alle 16). */
+export function sottrai(fasce: Fascia[], togli: Fascia[]): Fascia[] {
+  let resto = normalizza(fasce);
+  for (const t of normalizza(togli)) {
+    resto = resto.flatMap((f) => {
+      if (t.a <= f.da || t.da >= f.a) return [f];
+      return [
+        { da: f.da, a: Math.min(f.a, t.da) },
+        { da: Math.max(f.da, t.a), a: f.a },
+      ].filter((x) => x.a > x.da);
+    });
+  }
+  return resto;
+}
 
-/** Fasce in cui l'operatore è al lavoro in una data (sempre dentro gli orari del salone). */
+/** Assenze dell'operatore in una data: tutto il giorno, oppure solo alcune fasce orarie. */
+export function assenzeDel(op: Operatore, data: string): { interaGiornata: boolean; fasce: Fascia[] } {
+  const delGiorno = op.assenze.filter((a) => a.dal <= data && data <= a.al);
+  const parziali = delGiorno.filter((a) => a.da != null && a.a != null && a.a > a.da);
+  return {
+    interaGiornata: delGiorno.some((a) => a.da == null || a.a == null || !(a.a > a.da)),
+    fasce: normalizza(parziali.map((a) => ({ da: a.da!, a: a.a! }))),
+  };
+}
+
+/** Assente per tutta la giornata. */
+export const assente = (op: Operatore, data: string) => assenzeDel(op, data).interaGiornata;
+
+/** Fasce in cui l'operatore è al lavoro in una data (dentro gli orari del salone, tolte le assenze orarie). */
 export function turnoOperatore(op: Operatore, data: string, salone: Fascia[]): Fascia[] {
-  if (!op.attivo || assente(op, data)) return [];
+  if (!op.attivo) return [];
+  const { interaGiornata, fasce } = assenzeDel(op, data);
+  if (interaGiornata) return [];
   const t = op.turni[giornoSettimana(data)];
-  return t == null ? salone : intersezione(t, salone);
+  return sottrai(t == null ? salone : intersezione(t, salone), fasce);
 }
 
 export interface Impegno {
@@ -199,7 +226,10 @@ export function verifica(p: {
       continue;
     }
     if (f.competenza && !op.competenze.includes(f.competenza)) avvisi.add(`${op.nome} non ha la skill "${f.competenza}".`);
-    if (assente(op, p.data)) avvisi.add(`${op.nome} è assente in questa data.`);
+    const assenze = assenzeDel(op, p.data);
+    const sovrapposta = assenze.fasce.find((x) => x.da < f.inizio + f.durata && f.inizio < x.a);
+    if (assenze.interaGiornata) avvisi.add(`${op.nome} è assente in questa data.`);
+    else if (sovrapposta) avvisi.add(`${op.nome} è assente dalle ${hm(sovrapposta.da)} alle ${hm(sovrapposta.a)}.`);
     else if (p.salone.length && !dentro(turnoOperatore(op, p.data, p.salone), f.inizio, f.inizio + f.durata))
       avvisi.add(`${op.nome} non è in turno durante ${quando}.`);
     if (!libero(p.impegni, op.id!, f.inizio, f.inizio + f.durata))

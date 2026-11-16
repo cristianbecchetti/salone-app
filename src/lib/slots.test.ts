@@ -6,6 +6,8 @@ import {
   intersezione,
   nelleFasce,
   primoSlot,
+  sottrai,
+  assente,
   prossimaApertura,
   trovaSlot,
   turnoOperatore,
@@ -234,5 +236,57 @@ describe('fasce orarie in prenotazione', () => {
     expect(primo.inizio).toBe(h(15));
     expect(primo.staff).toEqual([1, null, 1]);
     expect(primoSlot([])).toBeUndefined();
+  });
+});
+
+describe('assenze per fascia oraria', () => {
+  const salone = MATTINA_POMERIGGIO;
+  it("sottrae l'assenza dal turno", () => {
+    expect(sottrai(salone, [{ da: h(10), a: h(11) }])).toEqual([
+      { da: h(9), a: h(10) },
+      { da: h(11), a: h(13) },
+      { da: h(15), a: h(19) },
+    ]);
+    expect(sottrai(salone, [{ da: h(12), a: h(16) }])).toEqual([
+      { da: h(9), a: h(12) },
+      { da: h(16), a: h(19) },
+    ]);
+  });
+
+  it("vale ogni giorno del periodo; senza orario resta l'assenza di tutto il giorno", () => {
+    const o = op(1, {
+      assenze: [
+        { dal: '2026-11-17', al: '2026-11-18', nota: 'medico', da: h(15), a: h(17) },
+        { dal: '2026-11-20', al: '2026-11-20', nota: 'ferie' },
+      ],
+    });
+    expect(turnoOperatore(o, '2026-11-18', salone)).toEqual([
+      { da: h(9), a: h(13) },
+      { da: h(17), a: h(19) },
+    ]);
+    expect(turnoOperatore(o, '2026-11-19', salone)).toEqual(salone);
+    expect(turnoOperatore(o, '2026-11-20', salone)).toEqual([]);
+    expect(assente(o, '2026-11-17')).toBe(false);
+    expect(assente(o, '2026-11-20')).toBe(true);
+  });
+
+  it("niente slot nell'orario di assenza, e avviso chiaro se si forza", () => {
+    const o = op(1, { assenze: [{ dal: '2026-11-17', al: '2026-11-17', nota: '', da: h(9), a: h(10) }] });
+    const slot = trovaSlot({
+      fasi: [{ tipo: 'lavoro', durata: 30 }],
+      salone,
+      operatori: [{ id: 1, turno: turnoOperatore(o, '2026-11-17', salone), competenze: [] }],
+      impegni: [],
+      passo: 15,
+    });
+    expect(slot[0].inizio).toBe(h(10));
+    const avvisi = verifica({
+      data: '2026-11-17',
+      fasi: [{ nome: 'Taglio', tipo: 'lavoro', inizio: h(9, 30), durata: 30, staffId: 1 }],
+      salone,
+      operatori: [o],
+      impegni: [],
+    });
+    expect(avvisi).toEqual(['Op1 è assente dalle 09:00 alle 10:00.']);
   });
 });

@@ -9,6 +9,7 @@ import {
   parseFileContatti,
   rubricaDisponibile,
   scegliDallaRubrica,
+  trovaDoppione,
   type Contatto,
 } from '../lib/contatti';
 import { dataNum, hm, oggi } from '../lib/tempo';
@@ -31,6 +32,7 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
   const [scheda, setScheda] = useState<Cliente | null>(null);
   const [importa, setImporta] = useState<DaImportare[] | null>(null);
   const [msg, setMsg] = useState('');
+  const [doppio, setDoppio] = useState<{ testo: string; cliente: Cliente } | null>(null);
   const [tab, setTab] = useState<'dati' | 'colori' | 'appuntamenti'>('dati');
   const [ricetta, setRicetta] = useState<SchedaColore | null>(null);
   const [mese, setMese] = useState(oggi().slice(0, 7));
@@ -67,6 +69,7 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
     }
   }
   const apri = (c: Cliente) => {
+    setDoppio(null);
     setTab('dati');
     setEsitoMese('');
     setScheda(c);
@@ -82,12 +85,12 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
       setMsg('Nessun contatto con nome e telefono trovato.');
       return;
     }
-    const esistenti = new Set(clienti.map((c) => c.telefono));
     const visti = new Set<string>();
     setMsg('');
     setImporta(
       contatti.map((c) => {
-        const doppio = esistenti.has(c.telefono) || visti.has(c.telefono);
+        const giaPresente = trovaDoppione(c, clienti, imp.prefisso);
+        const doppio = visti.has(c.telefono) || (!!giaPresente && giaPresente.motivo !== 'omonimo');
         visti.add(c.telefono);
         return { ...c, doppio, sel: !doppio };
       }),
@@ -115,6 +118,25 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
 
   async function salva() {
     if (!scheda || !(scheda.nome.trim() || scheda.cognome.trim())) return;
+    // niente doppioni: stesso numero, o stesso nome senza numero → bloccato; omonimo con altro numero → conferma
+    const d = trovaDoppione(scheda, clienti, imp.prefisso);
+    if (d && d.motivo !== 'omonimo') {
+      setDoppio({
+        testo:
+          d.motivo === 'telefono'
+            ? `Questo numero è già di ${nomeCliente(d.cliente)}: il cliente è già in rubrica.`
+            : `${nomeCliente(d.cliente)} è già in rubrica.`,
+        cliente: d.cliente,
+      });
+      return;
+    }
+    if (
+      d &&
+      !confirm(
+        `In rubrica c'è già ${nomeCliente(d.cliente)} con un altro numero (${d.cliente.telefono}).\nÈ un'altra persona con lo stesso nome? Salvare comunque?`,
+      )
+    )
+      return;
     await db.clienti.put({
       ...scheda,
       nome: scheda.nome.trim(),
@@ -204,6 +226,14 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
             </div>
           )}
 
+          {doppio && (
+            <div className="avviso riga a-capo">
+              <span className="cresce">{doppio.testo}</span>
+              <button className="piccolo" onClick={() => apri(doppio.cliente)}>
+                Apri {nomeCliente(doppio.cliente)}
+              </button>
+            </div>
+          )}
           {(tab === 'dati' || !scheda.id) && (
             <>
               <div className="griglia-form due">

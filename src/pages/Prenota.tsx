@@ -1,10 +1,10 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from '../db';
-import type { Appuntamento, FaseApp, Servizio, Stato, TipoFase } from '../types';
+import type { Appuntamento, Cliente, FaseApp, Servizio, Stato, TipoFase } from '../types';
 import { allineaPose, fasceSalone, impegniDa, nelleFasce, primoSlot, trovaSlot, turnoOperatore, verifica, type Slot } from '../lib/slots';
 import { dataLunga, dataNum, hm, minuti, oggi, oraMinuti, piuGiorni } from '../lib/tempo';
-import { normalizzaTelefono } from '../lib/contatti';
+import { normalizzaTelefono, trovaDoppione } from '../lib/contatti';
 import { inviaWhatsApp } from '../lib/whatsapp';
 import { parametriAppuntamento, testoConferma } from '../lib/messaggi';
 import { Ora, Pallino, nomeCliente } from '../ui';
@@ -48,6 +48,7 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
   const [clientId, setClientId] = useState<number | null>(pre?.clientId ?? null);
   const [cerca, setCerca] = useState('');
   const [nuovo, setNuovo] = useState<{ nome: string; cognome: string; telefono: string } | null>(null);
+  const [doppio, setDoppio] = useState<Cliente | null>(null);
   const [bozza, setBozza] = useState<Bozza[]>([]);
   const [data, setData] = useState(pre?.data ?? oggi());
   const [inizio, setInizio] = useState<number | null>(pre?.inizio ?? null);
@@ -315,6 +316,18 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
 
   async function creaCliente() {
     if (!nuovo || !(nuovo.nome.trim() || nuovo.cognome.trim())) return;
+    const d = trovaDoppione(nuovo, clienti, imp.prefisso);
+    if (d && d.motivo !== 'omonimo') {
+      setDoppio(d.cliente);
+      return;
+    }
+    if (
+      d &&
+      !confirm(
+        `In rubrica c'è già ${nomeCliente(d.cliente)} con un altro numero (${d.cliente.telefono}).\nÈ un'altra persona con lo stesso nome? Aggiungerla comunque?`,
+      )
+    )
+      return;
     const nid = await db.clienti.add({
       nome: nuovo.nome.trim(),
       cognome: nuovo.cognome.trim(),
@@ -435,11 +448,36 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
                   placeholder="Cellulare"
                   onChange={(t) => setNuovo({ ...nuovo, telefono: t })}
                 />
+                {doppio && (
+                  <div className="avviso">
+                    <p>
+                      <b>{nomeCliente(doppio)}</b> è già in rubrica{doppio.telefono ? ` (${doppio.telefono})` : ''}.
+                    </p>
+                    <button
+                      className="primario piccolo"
+                      onClick={() => {
+                        setClientId(doppio.id!);
+                        setNuovo(null);
+                        setDoppio(null);
+                        setCerca('');
+                      }}
+                    >
+                      Usa {nomeCliente(doppio)}
+                    </button>
+                  </div>
+                )}
                 <div className="riga">
                   <button className="primario" onClick={creaCliente}>
                     Aggiungi cliente
                   </button>
-                  <button onClick={() => setNuovo(null)}>Annulla</button>
+                  <button
+                    onClick={() => {
+                      setNuovo(null);
+                      setDoppio(null);
+                    }}
+                  >
+                    Annulla
+                  </button>
                 </div>
               </div>
             ) : (

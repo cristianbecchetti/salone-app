@@ -241,3 +241,40 @@ export const unisciTelefono = (prefisso: string, numero: string) => {
   const n = numero.replace(/\D/g, '');
   return n ? `${prefisso}${n}` : '';
 };
+
+/** Nome confrontabile: minuscole, senza accenti e spazi in più ("Maria  Rossì" = "maria rossi"). */
+export const nomeConfrontabile = (nome: string, cognome: string) =>
+  `${nome} ${cognome}`
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+export interface Doppione<C> {
+  cliente: C;
+  /**
+   * 'telefono' = stesso numero → bloccato;
+   * 'nome' = stesso nome e cognome, e almeno uno dei due senza numero → bloccato;
+   * 'omonimo' = stesso nome e cognome ma numeri diversi → può essere un'altra persona, si chiede conferma.
+   */
+  motivo: 'telefono' | 'nome' | 'omonimo';
+}
+
+/** Cerca tra i clienti uno già presente uguale a quello che si sta salvando (escluso sé stesso). */
+export function trovaDoppione<C extends { id?: number; nome: string; cognome: string; telefono: string }>(
+  nuovo: { id?: number; nome: string; cognome: string; telefono: string },
+  clienti: C[],
+  prefisso = '+39',
+): Doppione<C> | null {
+  const tel = normalizzaTelefono(nuovo.telefono, prefisso);
+  const nome = nomeConfrontabile(nuovo.nome, nuovo.cognome);
+  const altri = clienti.filter((c) => c.id == null || c.id !== nuovo.id);
+  const stessoNumero = tel ? altri.find((c) => normalizzaTelefono(c.telefono, prefisso) === tel) : undefined;
+  if (stessoNumero) return { cliente: stessoNumero, motivo: 'telefono' };
+  const stessoNome = nome ? altri.filter((c) => nomeConfrontabile(c.nome, c.cognome) === nome) : [];
+  const senzaNumero = stessoNome.find((c) => !tel || !normalizzaTelefono(c.telefono, prefisso));
+  if (senzaNumero) return { cliente: senzaNumero, motivo: 'nome' };
+  if (stessoNome.length) return { cliente: stessoNome[0], motivo: 'omonimo' };
+  return null;
+}

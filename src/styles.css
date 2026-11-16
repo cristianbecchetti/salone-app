@@ -370,3 +370,6 @@ button.grande { white-space: normal; text-align: center; line-height: 1.2; }
 .sync-stato.errore { color: #ffd166; opacity: 1; }
 .link-collega { border: 1px solid var(--bordo); border-radius: var(--raggio); padding: 0.6rem 0.8rem; margin-top: 0.6rem; }
 .link-collega input { width: 100%; font-size: 0.8rem; }
+
+/* assenze degli operatori (giornata intera o fascia oraria) */
+.assenza { border: 1px solid var(--bordo); border-radius: var(--raggio); padding: 0.3rem 0.6rem; margin-bottom: 0.5rem; }
