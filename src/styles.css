@@ -373,3 +373,13 @@ button.grande { white-space: normal; text-align: center; line-height: 1.2; }
 
 /* assenze degli operatori (giornata intera o fascia oraria) */
 .assenza { border: 1px solid var(--bordo); border-radius: var(--raggio); padding: 0.3rem 0.6rem; margin-bottom: 0.5rem; }
+
+/* agenda: segno "!" sugli appuntamenti con note */
+.segno-note {
+  display: inline-grid; place-items: center; flex: none; width: 1.25rem; height: 1.25rem; margin-left: 0.25rem;
+  border-radius: 50%; background: #ffd166; color: #3a2500; font-style: normal; font-weight: 900; font-size: 0.8rem; line-height: 1;
+  box-shadow: 0 0 0 2px #fff;
+}
+.voce-sett .segno-note { vertical-align: middle; }
+.blocco-cliente .segno-note { margin-left: 0; }
+.blocco-cliente .blocco-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

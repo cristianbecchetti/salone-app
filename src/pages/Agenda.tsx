@@ -142,6 +142,11 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
                       {sigla(clienti.find((c) => c.id === a.clientId))}
                     </i>
                     <b>{hm(a.inizio)}</b> {cliente(a)}
+                    {a.note?.trim() && (
+                      <i className="segno-note" aria-label="Appuntamento con note" title={a.note.trim()}>
+                        !
+                      </i>
+                    )}
                     <span className="tenue">{servizi(a)}</span>
                   </button>
                 ))}
@@ -297,7 +302,8 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
               ['--c' as string]: colore,
               ['--k' as string]: coloreDi.get(x.clientId),
             }}
-            title={`${cliente(x)} · ${f.servizio} · ${f.nome} ${hm(f.inizio)}–${hm(f.inizio + f.durata)}`}
+            title={`${cliente(x)} · ${f.servizio} · ${f.nome} ${hm(f.inizio)}–${hm(f.inizio + f.durata)}${x.note?.trim() ? `
+Note: ${x.note.trim()}` : ''}`}
             onPointerEnter={(e) => e.pointerType === 'mouse' && setEvidenzia(x.clientId)}
             onPointerLeave={(e) => e.pointerType === 'mouse' && !presa.current && setEvidenzia(null)}
             onPointerDown={(e) => {
@@ -338,7 +344,13 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
               <i className="sigla" aria-hidden>
                 {sigla(c)}
               </i>
-              {cliente(x)}
+              {/* subito dopo la sigla, così resta visibile anche nei blocchi stretti */}
+              {x.note?.trim() && (
+                <i className="segno-note" aria-label="Appuntamento con note">
+                  !
+                </i>
+              )}
+              <span className="blocco-nome">{cliente(x)}</span>
             </b>
             <span className="blocco-servizio">{f.servizio}</span>
             <span>
