@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from '../db';
 import type { Appuntamento, Cliente, FaseApp, Servizio, Stato, TipoFase } from '../types';
@@ -15,6 +15,12 @@ export interface Pre {
   inizio?: number;
   staffId?: number;
   clientId?: number;
+  /** servizi già scelti (es. da un comando vocale) */
+  serviceIds?: number[];
+  /** testo da mettere nella ricerca del cliente (nome sentito ma non trovato) */
+  cerca?: string;
+  /** operatore di ogni fase dei servizi scelti, nello stesso ordine (es. taglio a uno, piega a un altro) */
+  staff?: (number | null)[];
 }
 
 interface Bozza {
@@ -46,7 +52,7 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
   const eccezioni = useLiveQuery(() => db.eccezioni.toArray(), []) ?? [];
 
   const [clientId, setClientId] = useState<number | null>(pre?.clientId ?? null);
-  const [cerca, setCerca] = useState('');
+  const [cerca, setCerca] = useState(pre?.cerca ?? '');
   const [nuovo, setNuovo] = useState<{ nome: string; cognome: string; telefono: string } | null>(null);
   const [doppio, setDoppio] = useState<Cliente | null>(null);
   const [bozza, setBozza] = useState<Bozza[]>([]);
@@ -132,6 +138,20 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
       };
     });
   }
+  // servizi indicati prima di aprire (es. comando vocale): si caricano una volta sola, appena disponibili
+  const serviziPrecaricati = useRef(false);
+  useEffect(() => {
+    if (serviziPrecaricati.current || id || !pre?.serviceIds?.length || !servizi.length) return;
+    serviziPrecaricati.current = true;
+    const fasi = pre.serviceIds.flatMap((sid) => {
+      const s = servizi.find((x) => x.id === sid);
+      return s ? fasiDa(s) : [];
+    });
+    const perFase = pre.staff && pre.staff.length === fasi.length ? pre.staff : null;
+    setBozza(perFase ? fasi.map((f, i) => (f.tipo === 'lavoro' && perFase[i] != null ? { ...f, staffId: perFase[i] } : f)) : fasi);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [servizi.length]);
+
 
   function toggleServizio(s: Servizio) {
     if (bozza.some((b) => b.serviceId === s.id)) setBozza(bozza.filter((b) => b.serviceId !== s.id));

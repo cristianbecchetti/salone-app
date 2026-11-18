@@ -14,6 +14,7 @@ import Reminder from './pages/Reminder';
 import Impostazioni from './pages/Impostazioni';
 import Colori from './pages/Colori';
 import BackupAutomatico from './BackupAutomatico';
+import Voce from './Voce';
 import { CONTROLLO_OGNI, collegaDispositivo, leggiCollegamento, sincronizza } from './sincronizza';
 import { Modale } from './ui';
 import { hm } from './lib/tempo';
@@ -140,6 +141,14 @@ export default function App() {
       </main>
       {/* backup automatico su Drive e promemoria del backup manuale */}
       <BackupAutomatico />
+      {/* comandi vocali: microfono sempre a portata di mano */}
+      <Voce
+        vai={setRotta}
+        vaiAgenda={(d) => {
+          setGiorno(d);
+          setRotta({ p: 'agenda' });
+        }}
+      />
       {collega && (
         <Modale
           titolo="Collegare questo dispositivo?"
