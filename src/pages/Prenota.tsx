@@ -44,7 +44,7 @@ const STATI: [Stato, string][] = [
   ['annullato', 'Annullato'],
 ];
 
-export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; onFine: (data?: string) => void }) {
+export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?: number; pre?: Pre; onFine: (data?: string) => void; indietro?: string }) {
   const imp = useImpostazioni();
   const servizi = useLiveQuery(() => db.servizi.toArray(), []) ?? [];
   const operatori = useLiveQuery(() => db.operatori.toArray(), []) ?? [];
@@ -413,7 +413,7 @@ export default function Prenota({ id, pre, onFine }: { id?: number; pre?: Pre; o
   return (
     <div className="pagina">
       <header className="testata">
-        <button onClick={() => onFine()}>← Agenda</button>
+        <button onClick={() => onFine()}>← {indietro}</button>
         <h1>{id ? 'Modifica appuntamento' : 'Nuovo appuntamento'}</h1>
         <span className="spazio" />
         {id && (

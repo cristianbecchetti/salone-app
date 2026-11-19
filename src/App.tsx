@@ -13,19 +13,22 @@ import Orari from './pages/Orari';
 import Reminder from './pages/Reminder';
 import Impostazioni from './pages/Impostazioni';
 import Colori from './pages/Colori';
+import Cartacea from './pages/Cartacea';
 import BackupAutomatico from './BackupAutomatico';
 import Voce from './Voce';
 import { CONTROLLO_OGNI, collegaDispositivo, leggiCollegamento, sincronizza } from './sincronizza';
 import { Modale } from './ui';
 import { hm } from './lib/tempo';
 
-type Pagina = 'agenda' | 'reminder' | 'colori' | 'clienti' | 'servizi' | 'personale' | 'orari' | 'impostazioni';
-export type Rotta = { p: Pagina } | { p: 'prenota'; id?: number; pre?: Pre };
+type Pagina = 'agenda' | 'reminder' | 'colori' | 'cartacea' | 'clienti' | 'servizi' | 'personale' | 'orari' | 'impostazioni';
+/** `da`: pagina a cui tornare dopo la prenotazione (di base l'agenda) */
+export type Rotta = { p: Pagina } | { p: 'prenota'; id?: number; pre?: Pre; da?: Pagina };
 
 const VOCI: [Pagina, string, string][] = [
   ['agenda', 'Agenda', '📅'],
   ['reminder', 'Reminder', '💬'],
   ['colori', 'Colori', '🎨'],
+  ['cartacea', 'Carta', '📄'],
   ['clienti', 'Clienti', '👥'],
   ['servizi', 'Servizi', '✂️'],
   ['personale', 'Personale', '🧑'],
@@ -110,7 +113,7 @@ export default function App() {
             </span>
           )}
         </div>
-        {VOCI.map(([p, nome, icona]) => (
+        {VOCI.filter(([p]) => p !== 'cartacea' || imp.funzioni?.cartacea).map(([p, nome, icona]) => (
           <button key={p} className={attiva === p ? 'attiva' : ''} onClick={() => setRotta({ p })}>
             <span className="ico">{icona}</span>
             <span>{nome}</span>
@@ -125,9 +128,10 @@ export default function App() {
             key={rotta.id ?? 'nuovo'}
             id={rotta.id}
             pre={rotta.pre}
+            indietro={rotta.da === 'cartacea' ? 'Carta' : undefined}
             onFine={(data) => {
               if (data) setGiorno(data);
-              setRotta({ p: 'agenda' });
+              setRotta({ p: rotta.da ?? 'agenda' });
             }}
           />
         )}
@@ -137,6 +141,7 @@ export default function App() {
         {rotta.p === 'personale' && <Personale />}
         {rotta.p === 'orari' && <Orari />}
         {rotta.p === 'colori' && <Colori />}
+        {rotta.p === 'cartacea' && <Cartacea vai={setRotta} giornoIniziale={giorno} />}
         {rotta.p === 'impostazioni' && <Impostazioni />}
       </main>
       {/* backup automatico su Drive e promemoria del backup manuale */}

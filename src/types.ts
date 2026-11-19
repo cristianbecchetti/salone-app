@@ -170,6 +170,8 @@ export interface Impostazioni {
   fasceOrarie?: { nome: string; da: number; a: number }[];
   /** pagina Reminder: mostra tutti, oppure solo gli appuntamenti di almeno / meno di N minuti */
   reminderFiltro?: { verso: 'tutti' | 'almeno' | 'meno'; minuti: number };
+  /** funzioni facoltative, attivabili e disattivabili in Altro */
+  funzioni?: { cartacea?: boolean };
   /** questo dispositivo condivide i dati con gli altri tramite il file su Google Drive */
   syncAttiva?: boolean;
   /** ultima sincronizzazione riuscita (ISO) */

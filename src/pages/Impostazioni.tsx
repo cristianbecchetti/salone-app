@@ -124,6 +124,19 @@ export default function Impostazioni() {
       {msg && <p className="nota">{msg}</p>}
 
       <section className="scheda">
+        <h3>Funzioni</h3>
+        <p className="tenue">Funzioni facoltative: attivale quando servono e disattivale quando non le usi (i dati non vengono toccati).</p>
+        <label className="spunta">
+          <input
+            type="checkbox"
+            checked={!!imp.funzioni?.cartacea}
+            onChange={(e) => salva({ funzioni: { ...imp.funzioni, cartacea: e.target.checked } })}
+          />
+          Confronto con l’agenda cartacea (voce “Carta” nel menu): foto della pagina accanto agli appuntamenti dell’app, da spuntare
+        </label>
+      </section>
+
+      <section className="scheda">
         <h3>Salone</h3>
         <div className="griglia-form due">
           <Campo etichetta="Nome del salone">
