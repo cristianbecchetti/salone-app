@@ -289,12 +289,24 @@ export default function Voce(p: { vai: (r: Rotta) => void; vaiAgenda: (data: str
     );
   }
 
+  // ultimo testo sentito e se è già stato eseguito (per non perderlo né eseguirlo due volte)
+  const ultimoSentito = useRef('');
+  const eseguito = useRef(false);
+  const limite = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   function ascolta() {
     const R = Riconoscimento();
     if (!R) return;
-    if (ascolto) {
-      ric.current?.stop();
+    // secondo tocco mentre ascolta: ferma (il testo sentito fin lì viene eseguito in onend)
+    if (ascolto && ric.current) {
+      ric.current.stop();
       return;
+    }
+    // chiude un eventuale riconoscimento rimasto aperto da prima
+    try {
+      (ric.current as unknown as { abort?: () => void } | null)?.abort?.();
+    } catch {
+      /* niente */
     }
     try {
       speechSynthesis?.cancel();
@@ -305,27 +317,63 @@ export default function Voce(p: { vai: (r: Rotta) => void; vaiAgenda: (data: str
     r.lang = 'it-IT';
     r.interimResults = true;
     r.maxAlternatives = 1;
+    ultimoSentito.current = '';
+    eseguito.current = false;
     r.onresult = (e) => {
-      const ris = Array.from(e.results);
-      const testo = ris.map((x) => x[0].transcript).join('');
+      if (ric.current !== r) return;
+      // solo l'ultimo risultato: su Android i pezzi precedenti ripetono la frase
+      const ultimo = e.results[e.results.length - 1];
+      const testo = ultimo[0].transcript.trim();
+      ultimoSentito.current = testo;
       setSentito(testo);
-      if (ris[ris.length - 1].isFinal) void esegui(testo);
+      if (ultimo.isFinal && !eseguito.current) {
+        eseguito.current = true;
+        r.stop();
+        void esegui(testo);
+      }
     };
     r.onerror = (e) => {
+      if (ric.current !== r || e.error === 'aborted') return;
       const msg: Record<string, string> = {
         'not-allowed': 'Il microfono non è autorizzato: consenti l’accesso al microfono nelle impostazioni del browser.',
         'no-speech': 'Non ho sentito nulla. Tocca il microfono e parla.',
         network: 'Per riconoscere la voce serve internet.',
         'audio-capture': 'Microfono non disponibile.',
       };
+      eseguito.current = true;
       setRisposta({ detto: msg[e.error] ?? `Riconoscimento vocale non riuscito (${e.error}).` });
     };
-    r.onend = () => setAscolto(false);
+    r.onend = () => {
+      clearTimeout(limite.current);
+      if (ric.current !== r) return;
+      setAscolto(false);
+      ric.current = null;
+      // il dispositivo ha chiuso senza segnare il risultato come definitivo: si usa l'ultimo sentito
+      if (!eseguito.current && ultimoSentito.current) {
+        eseguito.current = true;
+        void esegui(ultimoSentito.current);
+      }
+    };
     ric.current = r;
     setRisposta(null);
     setSentito('');
     setAscolto(true);
-    r.start();
+    try {
+      r.start();
+    } catch {
+      // il microfono non era ancora libero: si riprova tra un attimo
+      setTimeout(() => {
+        try {
+          r.start();
+        } catch {
+          setAscolto(false);
+          setRisposta({ detto: 'Il microfono è occupato: riprova tra qualche secondo.' });
+        }
+      }, 400);
+    }
+    // non resta mai in ascolto all'infinito
+    clearTimeout(limite.current);
+    limite.current = setTimeout(() => r.stop(), 15000);
   }
 
   return (
@@ -335,8 +383,9 @@ export default function Voce(p: { vai: (r: Rotta) => void; vaiAgenda: (data: str
         aria-label="Comandi vocali"
         title="Comandi vocali"
         onClick={() => {
+          // ogni tocco del microfono ascolta un nuovo comando (o ferma l'ascolto in corso)
           setAperto(true);
-          if (supportato && !aperto) ascolta();
+          if (supportato) ascolta();
         }}
       >
         🎤
