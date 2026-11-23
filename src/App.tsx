@@ -14,13 +14,14 @@ import Reminder from './pages/Reminder';
 import Impostazioni from './pages/Impostazioni';
 import Colori from './pages/Colori';
 import Cartacea from './pages/Cartacea';
+import Statistiche from './pages/Statistiche';
 import BackupAutomatico from './BackupAutomatico';
 import Voce from './Voce';
 import { CONTROLLO_OGNI, collegaDispositivo, leggiCollegamento, sincronizza } from './sincronizza';
 import { Modale } from './ui';
 import { hm } from './lib/tempo';
 
-type Pagina = 'agenda' | 'reminder' | 'colori' | 'cartacea' | 'clienti' | 'servizi' | 'personale' | 'orari' | 'impostazioni';
+type Pagina = 'agenda' | 'reminder' | 'colori' | 'cartacea' | 'statistiche' | 'clienti' | 'servizi' | 'personale' | 'orari' | 'impostazioni';
 /** `da`: pagina a cui tornare dopo la prenotazione (di base l'agenda) */
 export type Rotta = { p: Pagina } | { p: 'prenota'; id?: number; pre?: Pre; da?: Pagina };
 
@@ -33,6 +34,7 @@ const VOCI: [Pagina, string, string][] = [
   ['servizi', 'Servizi', '✂️'],
   ['personale', 'Personale', '🧑'],
   ['orari', 'Orari', '🕒'],
+  ['statistiche', 'Statistiche', '📊'],
   ['impostazioni', 'Altro', '⚙️'],
 ];
 
@@ -128,7 +130,7 @@ export default function App() {
             key={rotta.id ?? 'nuovo'}
             id={rotta.id}
             pre={rotta.pre}
-            indietro={rotta.da === 'cartacea' ? 'Carta' : undefined}
+            indietro={rotta.da === 'cartacea' ? 'Carta' : rotta.da === 'statistiche' ? 'Statistiche' : undefined}
             onFine={(data) => {
               if (data) setGiorno(data);
               setRotta({ p: rotta.da ?? 'agenda' });
@@ -142,6 +144,7 @@ export default function App() {
         {rotta.p === 'orari' && <Orari />}
         {rotta.p === 'colori' && <Colori />}
         {rotta.p === 'cartacea' && <Cartacea vai={setRotta} giornoIniziale={giorno} />}
+        {rotta.p === 'statistiche' && <Statistiche vai={setRotta} />}
         {rotta.p === 'impostazioni' && <Impostazioni />}
       </main>
       {/* backup automatico su Drive e promemoria del backup manuale */}
