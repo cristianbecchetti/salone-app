@@ -252,7 +252,7 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
                 <textarea rows={3} value={scheda.note} onChange={(e) => setScheda({ ...scheda, note: e.target.value })} />
               </Campo>
               {scheda.bloccato ? (
-                <div className="avviso blocco">
+                <div className="avviso stato-blocco">
                   <div className="riga a-capo">
                     <b className="cresce">
                       🚫 Cliente bloccato{scheda.bloccatoIl ? ` dal ${dataNum(scheda.bloccatoIl)}` : ''}
@@ -264,7 +264,7 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
                     value={scheda.motivoBlocco ?? ''}
                     onChange={(e) => setScheda({ ...scheda, motivoBlocco: e.target.value })}
                   />
-                  <span className="tenue">Quando si crea un appuntamento per questo cliente compare un avviso. Premi Salva per confermare.</span>
+                  <p className="tenue">Quando si crea un appuntamento per questo cliente compare un avviso. Premi Salva per confermare.</p>
                 </div>
               ) : (
                 <button className="blocca" onClick={() => setScheda({ ...scheda, bloccato: true, bloccatoIl: oggi(), motivoBlocco: '' })}>
