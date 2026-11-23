@@ -230,9 +230,12 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
    * Primo appuntamento libero nelle fasce scelte: cerca sempre da oggi (anche prima del giorno mostrato),
    * entro 60 giorni; va al giorno trovato e seleziona l'orario.
    */
+  // "dal giorno": il primo disponibile si cerca a partire da una data scelta invece che da oggi
+  const [usaDal, setUsaDal] = useState(false);
+  const [dal, setDal] = useState(() => piuGiorni(oggi(), 7));
   async function primoDisponibile() {
     setMsg('');
-    const da = oggi();
+    const da = usaDal && dal > oggi() ? dal : oggi();
     const futuri = await db.appuntamenti.where('data').between(da, piuGiorni(da, 60), true, true).toArray();
     for (let i = 0; i <= 60; i++) {
       const g = piuGiorni(da, i);
@@ -243,7 +246,9 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
         return;
       }
     }
-    setMsg(`Nessuno slot libero nei prossimi 60 giorni${fasceAttive.length ? ' nelle fasce scelte' : ''} con questi criteri.`);
+    setMsg(
+      `Nessuno slot libero ${da === oggi() ? 'nei prossimi 60 giorni' : `nei 60 giorni dal ${dataNum(da)}`}${fasceAttive.length ? ' nelle fasce scelte' : ''} con questi criteri.`,
+    );
   }
 
   function scegliSlot(s: Slot) {
@@ -659,8 +664,16 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
                 anche chi non ha la skill
               </label>
               <button className="primario piccolo" disabled={!bozza.length} onClick={primoDisponibile}>
-                Primo disponibile{fasceAttive.length ? ' nelle fasce' : ''}
+                Primo disponibile{usaDal ? ` dal ${dataNum(dal > oggi() ? dal : oggi())}` : ''}
+                {fasceAttive.length ? ' nelle fasce' : ''}
               </button>
+            </div>
+            <div className="riga a-capo">
+              <label className="spunta">
+                <input type="checkbox" checked={usaDal} onChange={(e) => setUsaDal(e.target.checked)} />
+                Cerca il primo disponibile a partire dal giorno
+              </label>
+              {usaDal && <SceltaData valore={dal} min={oggi()} onChange={setDal} label="Primo disponibile a partire dal" chiuso={chiusoIl} />}
             </div>
             {fasceOrarie.length > 0 && (
               <div className="chips fasce-orarie" role="group" aria-label="Fasce orarie">
