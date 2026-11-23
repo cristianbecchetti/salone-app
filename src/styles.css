@@ -448,3 +448,8 @@ button.grande { white-space: normal; text-align: center; line-height: 1.2; }
 .tabella-stat td:first-child { min-width: 10rem; }
 .tabella-stat .etichetta { margin-left: 0.375rem; }
 .voce-richiamo { padding: 0.375rem 0; border-bottom: 1px solid var(--bordo); }
+
+/* clienti bloccati */
+.etichetta.bloccato { background: #fde7e5; color: var(--rosso); margin-left: 0.375rem; font-size: 0.75rem; }
+.avviso.blocco { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
+button.blocca { margin-top: 0.75rem; color: var(--rosso); }

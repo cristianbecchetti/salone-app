@@ -176,6 +176,7 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
         {elenco.map((c) => (
           <button key={c.id} className="voce" onClick={() => apri(c)}>
             <strong>{nomeCliente(c)}</strong>
+            {c.bloccato && <span className="etichetta bloccato">🚫 bloccato</span>}
             <span className="tenue">{c.telefono}</span>
           </button>
         ))}
@@ -250,6 +251,26 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
               <Campo etichetta="Note (preferenze, allergie…)">
                 <textarea rows={3} value={scheda.note} onChange={(e) => setScheda({ ...scheda, note: e.target.value })} />
               </Campo>
+              {scheda.bloccato ? (
+                <div className="avviso blocco">
+                  <div className="riga a-capo">
+                    <b className="cresce">
+                      🚫 Cliente bloccato{scheda.bloccatoIl ? ` dal ${dataNum(scheda.bloccatoIl)}` : ''}
+                    </b>
+                    <button onClick={() => setScheda({ ...scheda, bloccato: false, motivoBlocco: undefined, bloccatoIl: undefined })}>Sblocca</button>
+                  </div>
+                  <input
+                    placeholder="Motivo del blocco (es. non si presenta, debito…)"
+                    value={scheda.motivoBlocco ?? ''}
+                    onChange={(e) => setScheda({ ...scheda, motivoBlocco: e.target.value })}
+                  />
+                  <span className="tenue">Quando si crea un appuntamento per questo cliente compare un avviso. Premi Salva per confermare.</span>
+                </div>
+              ) : (
+                <button className="blocca" onClick={() => setScheda({ ...scheda, bloccato: true, bloccatoIl: oggi(), motivoBlocco: '' })}>
+                  🚫 Blocca cliente
+                </button>
+              )}
             </>
           )}
 

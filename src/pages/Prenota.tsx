@@ -7,7 +7,7 @@ import { dataLunga, dataNum, hm, minuti, oggi, oraMinuti, piuGiorni } from '../l
 import { normalizzaTelefono, trovaDoppione } from '../lib/contatti';
 import { inviaWhatsApp } from '../lib/whatsapp';
 import { parametriAppuntamento, testoConferma } from '../lib/messaggi';
-import { Ora, Pallino, nomeCliente } from '../ui';
+import { Modale, Ora, Pallino, nomeCliente } from '../ui';
 import { SceltaData, SceltaOra, StrisciaGiorni, Telefono } from '../scelte';
 
 export interface Pre {
@@ -359,7 +359,9 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
     setCerca('');
   }
 
-  const pronto = clientId != null && inizio != null && bozza.length > 0;
+  // nuovo appuntamento per un cliente bloccato: l'operatore sceglie se sbloccarlo o rinunciare
+  const bloccato = !id && !!cliente?.bloccato;
+  const pronto = clientId != null && inizio != null && bozza.length > 0 && !bloccato;
   // nuova prenotazione: proposto se almeno un servizio scelto lo prevede; in modifica: solo se lo si spunta
   const inviaProposto = !id && serviceIds.some((sid) => servizi.find((s) => s.id === sid)?.inviaConferma);
   const inviaConferma = !!cliente?.telefono && (invia ?? inviaProposto);
@@ -412,6 +414,33 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
 
   return (
     <div className="pagina">
+      {bloccato && cliente && (
+        <Modale
+          titolo="Cliente bloccato"
+          onChiudi={() => onFine()}
+          azioni={
+            <>
+              <button onClick={() => onFine()}>Annulla l'appuntamento</button>
+              <span className="spazio" />
+              <button
+                className="primario"
+                onClick={() => db.clienti.update(cliente.id!, { bloccato: false, motivoBlocco: undefined, bloccatoIl: undefined })}
+              >
+                Sblocca e prosegui
+              </button>
+            </>
+          }
+        >
+          <p>
+            <b>{nomeCliente(cliente)}</b> è bloccato{cliente.bloccatoIl ? ` dal ${dataNum(cliente.bloccatoIl)}` : ''}.
+          </p>
+          {cliente.motivoBlocco?.trim() && <p className="avviso">Motivo: {cliente.motivoBlocco.trim()}</p>}
+          <p className="tenue">
+            Puoi sbloccare il cliente e continuare con la prenotazione, oppure annullare l'inserimento dell'appuntamento. Per bloccarlo di
+            nuovo: Clienti → scheda del cliente.
+          </p>
+        </Modale>
+      )}
       <header className="testata">
         <button onClick={() => onFine()}>← {indietro}</button>
         <h1>{id ? 'Modifica appuntamento' : 'Nuovo appuntamento'}</h1>
@@ -432,6 +461,7 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
                 <div className="riga">
                   <div>
                     <strong>{nomeCliente(cliente)}</strong>
+                    {cliente.bloccato && <span className="etichetta bloccato">🚫 bloccato</span>}
                     <div className="tenue">{cliente.telefono || 'nessun telefono'}</div>
                   </div>
                   <span className="spazio" />
@@ -510,6 +540,7 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
                   {trovati.map((c) => (
                     <button key={c.id} className="voce" onClick={() => setClientId(c.id!)}>
                       <strong>{nomeCliente(c)}</strong>
+                      {c.bloccato && <span className="etichetta bloccato">🚫 bloccato</span>}
                       <span className="tenue">{c.telefono}</span>
                     </button>
                   ))}

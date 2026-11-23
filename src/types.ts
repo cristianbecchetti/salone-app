@@ -74,6 +74,11 @@ export interface Cliente {
   cognome: string;
   telefono: string;
   note: string;
+  /** cliente bloccato: alla creazione di un appuntamento compare un avviso */
+  bloccato?: boolean;
+  motivoBlocco?: string;
+  /** data del blocco (AAAA-MM-GG) */
+  bloccatoIl?: string;
 }
 
 export interface FaseApp {
