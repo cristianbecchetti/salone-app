@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from '../db';
 import type { Appuntamento, Cliente, FaseApp, Servizio, Stato, TipoFase } from '../types';
-import { allineaPose, fasceSalone, impegniDa, nelleFasce, primoSlot, trovaSlot, turnoOperatore, verifica, type Slot } from '../lib/slots';
+import { allineaPose, fasceSalone, orarioEsteso, impegniDa, nelleFasce, primoSlot, trovaSlot, turnoOperatore, verifica, type Slot } from '../lib/slots';
 import { dataLunga, dataNum, hm, minuti, oggi, oraMinuti, piuGiorni } from '../lib/tempo';
 import { normalizzaTelefono, trovaDoppione } from '../lib/contatti';
 import { inviaWhatsApp } from '../lib/whatsapp';
@@ -211,7 +211,7 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
     const salone = fasceSalone(g, imp.settimana, eccezioni);
     return trovaSlot({
       fasi: bozza,
-      salone,
+      salone: orarioEsteso(g, salone, attivi),
       operatori: attivi.map((o) => ({ id: o.id!, turno: turnoOperatore(o, g, salone), competenze: o.competenze })),
       impegni: impegniDa(appuntamenti, id),
       passo: imp.passo,
@@ -221,7 +221,7 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
   }
 
   const salone = fasceSalone(data, imp.settimana, eccezioni);
-  const chiusoIl = (d: string) => !fasceSalone(d, imp.settimana, eccezioni).length;
+  const chiusoIl = (d: string) => !orarioEsteso(d, fasceSalone(d, imp.settimana, eccezioni), attivi).length;
   // la striscia parte da oggi; se la data scelta è fuori, la tiene vicino al centro
   const inizioStriscia = data >= oggi() && data <= piuGiorni(oggi(), 20) ? oggi() : piuGiorni(data, -3);
   const slot = bozza.length ? slotDelGiorno(data, delGiorno) : [];
@@ -653,7 +653,7 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
 
             {!bozza.length ? (
               <p className="tenue">Scegli almeno un servizio per vedere gli orari liberi.</p>
-            ) : !salone.length ? (
+            ) : !orarioEsteso(data, salone, attivi).length ? (
               <p className="avviso">Il salone è chiuso in questa data.</p>
             ) : !slot.length ? (
               <p className="avviso">

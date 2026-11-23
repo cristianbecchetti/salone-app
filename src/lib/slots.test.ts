@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Appuntamento, Fascia, Operatore } from '../types';
 import {
+  orarioEsteso,
+  unisci,
   fasceSalone,
   impegniDa,
   intersezione,
@@ -288,5 +290,41 @@ describe('assenze per fascia oraria', () => {
       impegni: [],
     });
     expect(avvisi).toEqual(['Op1 è assente dalle 09:00 alle 10:00.']);
+  });
+});
+
+describe('orari straordinari', () => {
+  const salone = [{ da: h(9), a: h(13) }, { da: h(15), a: h(19) }];
+  const extra = (data: string, fasce: Fascia[]) => op(1, { straordinari: [{ data, fasce, nota: '' }] });
+
+  it('sostituiscono il turno solo in quella data, anche fuori apertura', () => {
+    const o = extra('2026-11-17', [{ da: h(15), a: h(21) }]);
+    expect(turnoOperatore(o, '2026-11-17', salone)).toEqual([{ da: h(15), a: h(21) }]);
+    expect(turnoOperatore(o, '2026-11-18', salone)).toEqual(salone);
+    expect(turnoOperatore(extra('2026-11-17', []), '2026-11-17', salone)).toEqual([]);
+  });
+
+  it('le assenze orarie valgono anche nello straordinario', () => {
+    const o = { ...extra('2026-11-17', [{ da: h(9), a: h(21) }]), assenze: [{ dal: '2026-11-17', al: '2026-11-17', nota: '', da: h(13), a: h(14) }] };
+    expect(turnoOperatore(o, '2026-11-17', salone)).toEqual([{ da: h(9), a: h(13) }, { da: h(14), a: h(21) }]);
+  });
+
+  it("allungano l'orario utile del giorno e propongono slot serali o a salone chiuso", () => {
+    const o = extra('2026-11-16', [{ da: h(10), a: h(12) }]); // lunedì, salone chiuso
+    const esteso = orarioEsteso('2026-11-16', [], [o, op(2)]);
+    expect(esteso).toEqual([{ da: h(10), a: h(12) }]);
+    const slot = trovaSlot({
+      fasi: [{ tipo: 'lavoro', durata: 60 }],
+      salone: esteso,
+      operatori: [o, op(2)].map((x) => ({ id: x.id!, turno: turnoOperatore(x, '2026-11-16', []), competenze: [] })),
+      impegni: [],
+      passo: 30,
+    });
+    expect(slot.map((s) => [s.inizio, s.staff[0]])).toEqual([[h(10), 1], [h(10, 30), 1], [h(11), 1]]);
+    expect(verifica({ data: '2026-11-16', fasi: [{ nome: 'Taglio', tipo: 'lavoro', inizio: h(10), durata: 60, staffId: 1 }], salone: [], operatori: [o], impegni: [] })).toEqual([]);
+  });
+
+  it('unisce le fasce che si toccano', () => {
+    expect(unisci([{ da: h(15), a: h(19) }, { da: h(9), a: h(13) }, { da: h(19), a: h(21) }])).toEqual([{ da: h(9), a: h(13) }, { da: h(15), a: h(21) }]);
   });
 });

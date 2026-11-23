@@ -60,11 +60,35 @@ export function assenzeDel(op: Operatore, data: string): { interaGiornata: boole
 /** Assente per tutta la giornata. */
 export const assente = (op: Operatore, data: string) => assenzeDel(op, data).interaGiornata;
 
-/** Fasce in cui l'operatore è al lavoro in una data (dentro gli orari del salone, tolte le assenze orarie). */
+/** Orario straordinario dell'operatore in una data, se c'è. */
+export const straordinarioDel = (op: Operatore, data: string) => op.straordinari?.find((s) => s.data === data);
+
+/** Unisce le fasce che si toccano o si sovrappongono (es. 9–13 e 12–15 → 9–15). */
+export function unisci(fasce: Fascia[]): Fascia[] {
+  const out: Fascia[] = [];
+  for (const f of normalizza(fasce)) {
+    const u = out[out.length - 1];
+    if (u && f.da <= u.a) u.a = Math.max(u.a, f.a);
+    else out.push({ ...f });
+  }
+  return out;
+}
+
+/** Orari in cui si lavora in una data: l'apertura del salone più gli straordinari degli operatori attivi. */
+export function orarioEsteso(data: string, salone: Fascia[], operatori: Operatore[]): Fascia[] {
+  return unisci([...salone, ...operatori.filter((o) => o.attivo).flatMap((o) => straordinarioDel(o, data)?.fasce ?? [])]);
+}
+
+/**
+ * Fasce in cui l'operatore è al lavoro in una data (dentro gli orari del salone, tolte le assenze orarie).
+ * Uno straordinario per quella data sostituisce il turno, anche fuori dall'apertura del salone.
+ */
 export function turnoOperatore(op: Operatore, data: string, salone: Fascia[]): Fascia[] {
   if (!op.attivo) return [];
   const { interaGiornata, fasce } = assenzeDel(op, data);
   if (interaGiornata) return [];
+  const extra = straordinarioDel(op, data);
+  if (extra) return sottrai(extra.fasce, fasce);
   const t = op.turni[giornoSettimana(data)];
   return sottrai(t == null ? salone : intersezione(t, salone), fasce);
 }
@@ -209,8 +233,10 @@ export function verifica(p: {
   const inizio = p.fasi[0].inizio;
   const ultima = p.fasi[p.fasi.length - 1];
   const fine = ultima.inizio + ultima.durata;
-  if (!p.salone.length) avvisi.add('Il salone è chiuso in questa data.');
-  else if (!dentro(p.salone, inizio, fine))
+  // gli straordinari degli operatori allungano l'orario utile del giorno
+  const ambito = orarioEsteso(p.data, p.salone, p.operatori);
+  if (!ambito.length) avvisi.add('Il salone è chiuso in questa data.');
+  else if (!dentro(ambito, inizio, fine))
     avvisi.add(`L'appuntamento (${hm(inizio)}–${hm(fine)}) esce dall'orario di apertura.`);
 
   for (const f of p.fasi) {
@@ -230,7 +256,7 @@ export function verifica(p: {
     const sovrapposta = assenze.fasce.find((x) => x.da < f.inizio + f.durata && f.inizio < x.a);
     if (assenze.interaGiornata) avvisi.add(`${op.nome} è assente in questa data.`);
     else if (sovrapposta) avvisi.add(`${op.nome} è assente dalle ${hm(sovrapposta.da)} alle ${hm(sovrapposta.a)}.`);
-    else if (p.salone.length && !dentro(turnoOperatore(op, p.data, p.salone), f.inizio, f.inizio + f.durata))
+    else if (ambito.length && !dentro(turnoOperatore(op, p.data, p.salone), f.inizio, f.inizio + f.durata))
       avvisi.add(`${op.nome} non è in turno durante ${quando}.`);
     if (!libero(p.impegni, op.id!, f.inizio, f.inizio + f.durata))
       avvisi.add(`${op.nome} è già occupato durante ${quando}.`);

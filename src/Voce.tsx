@@ -6,7 +6,7 @@ import { db, useImpostazioni } from './db';
 import type { Rotta } from './App';
 import type { Appuntamento, Cliente, Eccezione, Servizio } from './types';
 import { ESEMPI, interpreta, type Comando } from './lib/voce';
-import { fasceSalone, impegniDa, nelleFasce, primoSlot, trovaSlot, turnoOperatore } from './lib/slots';
+import { fasceSalone, orarioEsteso, impegniDa, nelleFasce, primoSlot, trovaSlot, turnoOperatore } from './lib/slots';
 import { dataLunga, hm, oggi, oraMinuti, piuGiorni } from './lib/tempo';
 import { linkWhatsApp } from './lib/contatti';
 import { serviziDi, testoRicetta } from './lib/messaggi';
@@ -199,7 +199,7 @@ export default function Voce(p: { vai: (r: Rotta) => void; vaiAgenda: (data: str
           const salone = fasceSalone(g, imp.settimana, eccezioni);
           const slot = trovaSlot({
             fasi,
-            salone,
+            salone: orarioEsteso(g, salone, operatori),
             operatori: operatori.filter((o) => o.attivo).map((o) => ({ id: o.id!, turno: turnoOperatore(o, g, salone), competenze: o.competenze })),
             impegni: impegniDa(futuri.filter((a) => a.data === g)),
             passo: imp.passo,
@@ -262,7 +262,7 @@ export default function Voce(p: { vai: (r: Rotta) => void; vaiAgenda: (data: str
       const ops = (await db.operatori.toArray()).filter((o) => o.attivo);
       const slot = trovaSlot({
         fasi,
-        salone,
+        salone: orarioEsteso(c.data, salone, ops),
         operatori: ops.map((o) => ({ id: o.id!, turno: turnoOperatore(o, c.data!, salone), competenze: o.competenze })),
         impegni: impegniDa(await db.appuntamenti.where('data').equals(c.data).toArray()),
         passo: 5,

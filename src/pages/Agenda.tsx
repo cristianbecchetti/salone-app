@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from '../db';
 import type { Rotta } from '../App';
 import type { Appuntamento, Fascia } from '../types';
-import { allineaPose, fasceSalone, impegniDa, turnoOperatore, verifica } from '../lib/slots';
+import { allineaPose, fasceSalone, orarioEsteso, straordinarioDel, impegniDa, turnoOperatore, verifica } from '../lib/slots';
 import { dataBreve, dataLunga, hm, lunedi, oggi, oraMinuti, piuGiorni } from '../lib/tempo';
 import { nomeCliente } from '../ui';
 import { SceltaData } from '../scelte';
@@ -26,6 +26,8 @@ function coloriClienti(app: Appuntamento[]): Map<number, string> {
 /** Iniziali del cliente, es. "MR" per Maria Rossi. */
 const sigla = (c?: Cliente) => ((c?.nome?.[0] ?? '') + (c?.cognome?.[0] ?? '')).toUpperCase() || '?';
 
+
+const fasceTesto = (f: Fascia[]) => f.map((x) => `${hm(x.da)}–${hm(x.a)}`).join(' · ');
 
 /** Intervalli di [da, a] non coperti dalle fasce (zone "chiuso" / fuori turno). */
 function buchi(fasce: Fascia[], da: number, a: number): Fascia[] {
@@ -97,7 +99,7 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
       <button onClick={() => setGiorno(piuGiorni(giorno, passoGiorni))} aria-label="Avanti">
         ›
       </button>
-      <SceltaData valore={giorno} onChange={setGiorno} label="Vai alla data" chiuso={(d) => !fasceSalone(d, imp.settimana, eccezioni).length} />
+      <SceltaData valore={giorno} onChange={setGiorno} label="Vai alla data" chiuso={(d) => !orarioEsteso(d, fasceSalone(d, imp.settimana, eccezioni), operatori).length} />
       <h1 className="capitalizza">
         {vista === 'giorno' ? dataLunga(giorno) : `${dataBreve(lun)} – ${dataBreve(piuGiorni(lun, 6))}`}
       </h1>
@@ -134,7 +136,14 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
                   }}
                 >
                   <strong className="capitalizza">{dataBreve(g)}</strong>
-                  <span className="tenue">{aperto.length ? aperto.map((f) => `${hm(f.da)}–${hm(f.a)}`).join(' · ') : 'Chiuso'}</span>
+                  <span className="tenue">{aperto.length ? fasceTesto(aperto) : 'Chiuso'}</span>
+                  {operatori
+                    .filter((o) => o.attivo && straordinarioDel(o, g))
+                    .map((o) => (
+                      <span key={o.id} className="straord">
+                        ⏱ {o.nome} {fasceTesto(straordinarioDel(o, g)!.fasce) || 'riposo'}
+                      </span>
+                    ))}
                 </button>
                 {lista.map((a, _i, tutti) => (
                   <button key={a.id} className={`voce-sett ${a.stato}`} onClick={() => vai({ p: 'prenota', id: a.id })}>
@@ -150,7 +159,7 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
                     <span className="tenue">{servizi(a)}</span>
                   </button>
                 ))}
-                {!lista.length && aperto.length > 0 && <span className="tenue vuoto">—</span>}
+                {!lista.length && orarioEsteso(g, aperto, operatori).length > 0 && <span className="tenue vuoto">—</span>}
               </div>
             );
           })}
@@ -168,8 +177,10 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
   const colonne = operatori.filter((o) => o.attivo || usati.has(o.id!));
   const senzaOp = usati.has(null);
 
-  let da = salone.length ? salone[0].da : 9 * 60;
-  let a = salone.length ? salone[salone.length - 1].a : 19 * 60;
+  // la griglia copre anche gli straordinari degli operatori
+  const esteso = orarioEsteso(giorno, salone, operatori);
+  let da = esteso.length ? esteso[0].da : 9 * 60;
+  let a = esteso.length ? esteso[esteso.length - 1].a : 19 * 60;
   for (const x of lista) {
     da = Math.min(da, x.inizio);
     a = Math.max(a, x.fine);
@@ -373,8 +384,12 @@ Note: ${x.note.trim()}` : ''}`}
     <div className="pagina agenda">
       {testata}
       {(!salone.length || ecc) && (
-        <p className={salone.length ? 'nota' : 'avviso'}>
-          {salone.length ? `Orario speciale: ${salone.map((f) => `${hm(f.da)}–${hm(f.a)}`).join(' · ')}` : 'Salone chiuso'}
+        <p className={esteso.length ? 'nota' : 'avviso'}>
+          {salone.length
+            ? `Orario speciale: ${fasceTesto(salone)}`
+            : esteso.length
+              ? 'Salone chiuso: lavora solo chi ha un orario straordinario'
+              : 'Salone chiuso'}
           {ecc?.nota ? ` — ${ecc.nota}` : ''}
         </p>
       )}
@@ -385,6 +400,11 @@ Note: ${x.note.trim()}` : ''}`}
           {colonne.map((o) => (
             <div className="col-testa" key={o.id} style={{ borderColor: o.colore }}>
               {o.nome}
+              {straordinarioDel(o, giorno) && (
+                <span className="straord" title={straordinarioDel(o, giorno)!.nota || 'Orario straordinario'}>
+                  ⏱ {fasceTesto(straordinarioDel(o, giorno)!.fasce) || 'riposo'}
+                </span>
+              )}
             </div>
           ))}
           {senzaOp && <div className="col-testa">Da assegnare</div>}

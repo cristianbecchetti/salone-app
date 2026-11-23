@@ -420,3 +420,11 @@ button.grande { white-space: normal; text-align: center; line-height: 1.2; }
 .segno { min-width: 3.25rem; font-size: 1.3rem; font-weight: 800; padding: 0; }
 .segno.si.scelto { background: var(--verde); border-color: var(--verde); color: #fff; }
 .segno.no.scelto { background: #c1121f; border-color: #c1121f; color: #fff; }
+
+/* orari straordinari degli operatori */
+.straord {
+  display: block;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: #9a5b00;
+}

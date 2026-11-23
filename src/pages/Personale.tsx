@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { aggiungiSkill, cambiaSkill, db, useImpostazioni } from '../db';
 import type { Operatore, Skill } from '../types';
-import { GIORNI, ORDINE_GIORNI, dataNum, oggi } from '../lib/tempo';
+import { GIORNI, ORDINE_GIORNI, dataLunga, dataNum, giornoSettimana, oggi } from '../lib/tempo';
 import { Campo, FasceEditor, Modale, Ora, Pallino } from '../ui';
 import { SceltaData } from '../scelte';
 
@@ -64,7 +64,12 @@ export default function Personale() {
 
   async function salva() {
     if (!o || !o.nome.trim()) return;
-    await db.operatori.put({ ...o, nome: o.nome.trim(), assenze: o.assenze.filter((a) => a.dal && a.al) });
+    await db.operatori.put({
+      ...o,
+      nome: o.nome.trim(),
+      assenze: o.assenze.filter((a) => a.dal && a.al),
+      straordinari: (o.straordinari ?? []).filter((x) => x.data).sort((x, y) => x.data.localeCompare(y.data)),
+    });
     setO(null);
   }
   async function elimina() {
@@ -248,6 +253,49 @@ export default function Personale() {
               </div>
             );
           })}
+
+          <h4>Orari straordinari</h4>
+          <p className="tenue">
+            Per un giorno preciso l'operatore lavora con questo orario al posto del suo turno, anche fuori dall'apertura del salone o in un
+            giorno di chiusura (es. sabato fino alle 21, domenica per una sposa). Senza fasce = quel giorno non lavora.
+          </p>
+          {(o.straordinari ?? []).map((x, i) => {
+            const lista = o.straordinari ?? [];
+            const cambia = (pezzo: Partial<typeof x>) => setO({ ...o, straordinari: lista.map((y, j) => (j === i ? { ...y, ...pezzo } : y)) });
+            const doppio = lista.some((y, j) => j !== i && y.data === x.data);
+            return (
+              <div className="assenza" key={i}>
+                <div className="riga a-capo">
+                  <SceltaData valore={x.data} label="Giorno dello straordinario" onChange={(d) => cambia({ data: d })} />
+                  <span className="tenue capitalizza">{dataLunga(x.data)}</span>
+                  <input className="cresce" placeholder="Motivo (facoltativo)" value={x.nota} onChange={(e) => cambia({ nota: e.target.value })} />
+                  <button
+                    className="icona"
+                    aria-label="Rimuovi orario straordinario"
+                    onClick={() => setO({ ...o, straordinari: lista.filter((_, j) => j !== i) })}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <FasceEditor fasce={x.fasce} onChange={(f) => cambia({ fasce: f })} vuoto="Non lavora" />
+                {doppio && <span className="etichetta gialla">c'è già un orario straordinario per questo giorno: vale il primo</span>}
+              </div>
+            );
+          })}
+          {!o.straordinari?.length && <p className="tenue">Nessun orario straordinario.</p>}
+          <button
+            onClick={() => {
+              const g = giornoSettimana(oggi());
+              const solito = o.turni[g] ?? imp.settimana[g];
+              const fasce = solito.length ? solito.map((f) => ({ ...f })) : [{ da: 9 * 60, a: 13 * 60 }];
+              setO({ ...o, straordinari: [...(o.straordinari ?? []), { data: oggi(), fasce, nota: '' }] });
+            }}
+          >
+            + Aggiungi orario straordinario
+          </button>
+          {o.straordinari?.some((x) => x.data < oggi()) && (
+            <p className="tenue">Gli straordinari passati (prima del {dataNum(oggi())}) si possono rimuovere senza effetti.</p>
+          )}
 
           <h4>Ferie e assenze</h4>
           {o.assenze.map((a, i) => {

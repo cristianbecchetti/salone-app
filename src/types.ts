@@ -47,6 +47,13 @@ export interface Assenza {
   a?: number;
 }
 
+/** Orario straordinario di un operatore in una data: sostituisce il suo turno di quel giorno, anche fuori dall'apertura del salone. */
+export interface Straordinario {
+  data: string;
+  fasce: Fascia[];
+  nota: string;
+}
+
 export interface Operatore {
   id?: number;
   nome: string;
@@ -56,6 +63,8 @@ export interface Operatore {
   /** indice = giorno della settimana (0 = domenica). null = segue gli orari del salone, [] = non lavora */
   turni: (Fascia[] | null)[];
   assenze: Assenza[];
+  /** orari straordinari per data (es. sabato fino alle 21, domenica per una sposa) */
+  straordinari?: Straordinario[];
   attivo: boolean;
 }
 
