@@ -3,9 +3,9 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from '../db';
 import type { Rotta } from '../App';
 import type { Appuntamento, Fascia } from '../types';
-import { allineaPose, fasceSalone, orarioEsteso, straordinarioDel, impegniDa, turnoOperatore, verifica } from '../lib/slots';
+import { allineaPose, daAssegnare, fasiDaAssegnare, fasceSalone, orarioEsteso, straordinarioDel, impegniDa, turnoOperatore, verifica } from '../lib/slots';
 import { dataBreve, dataLunga, hm, lunedi, oggi, oraMinuti, piuGiorni } from '../lib/tempo';
-import { nomeCliente } from '../ui';
+import { Modale, nomeCliente } from '../ui';
 import { SceltaData } from '../scelte';
 import type { Cliente } from '../types';
 
@@ -88,6 +88,45 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
     settimana.filter((a) => a.data === g && a.stato !== 'annullato').sort((a, b) => a.inizio - b.inizio);
   const cliente = (a: Appuntamento) => nomeCliente(clienti.find((c) => c.id === a.clientId));
   const servizi = (a: Appuntamento) => [...new Set(a.fasi.map((f) => f.servizio))].join(', ');
+
+  // appuntamenti da oggi in poi con fasi di lavoro senza operatore
+  const [elencoAssegnare, setElencoAssegnare] = useState(false);
+  const futuri = useLiveQuery(() => db.appuntamenti.where('data').aboveOrEqual(oggi()).toArray(), []) ?? [];
+  const nonAssegnati = futuri.filter((a) => daAssegnare(a, operatori)).sort((x, y) => x.data.localeCompare(y.data) || x.inizio - y.inizio);
+  /** colonna in cui mostrare una fase: quella dell'operatore, o "Da assegnare" (null) se manca o non esiste più */
+  const colonnaDi = (staffId: number | null) =>
+    staffId != null && (!operatori.length || operatori.some((o) => o.id === staffId)) ? staffId : null;
+  const avvisoAssegnare = nonAssegnati.length > 0 && (
+    <div className="avviso riga a-capo da-assegnare-avviso">
+      <span className="cresce">
+        ⚠ <b>{nonAssegnati.length}</b> {nonAssegnati.length === 1 ? 'appuntamento da assegnare' : 'appuntamenti da assegnare'} (da oggi in poi): manca
+        l'operatore di almeno una fase.
+      </span>
+      <button className="piccolo" onClick={() => setElencoAssegnare(true)}>
+        Mostra elenco
+      </button>
+    </div>
+  );
+  const finestraAssegnare = elencoAssegnare && (
+    <Modale titolo="Appuntamenti da assegnare" onChiudi={() => setElencoAssegnare(false)}>
+      {!nonAssegnati.length && <p className="tenue">Tutti gli appuntamenti hanno un operatore.</p>}
+      {nonAssegnati.map((a) => (
+        <button key={a.id} className="voce da-assegnare-voce" onClick={() => vai({ p: 'prenota', id: a.id })}>
+          <span>
+            <b className="capitalizza">{dataBreve(a.data)}</b> {hm(a.inizio)} · {cliente(a)}
+            <span className="tenue">
+              {' '}
+              · senza operatore:{' '}
+              {fasiDaAssegnare(a.fasi, operatori)
+                .map((f) => `${f.nome} ${hm(f.inizio)}`)
+                .join(', ')}
+            </span>
+          </span>
+        </button>
+      ))}
+      <p className="tenue">Tocca un appuntamento per aprirlo e scegliere l'operatore, oppure trascina il blocco dalla colonna «Da assegnare» nell'agenda del giorno.</p>
+    </Modale>
+  );
   const passoGiorni = vista === 'giorno' ? 1 : 7;
 
   const testata = (
@@ -122,6 +161,8 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
     return (
       <div className="pagina">
         {testata}
+        {avvisoAssegnare}
+        {finestraAssegnare}
         <div className="settimana">
           {Array.from({ length: 7 }, (_, i) => piuGiorni(lun, i)).map((g) => {
             const aperto = fasceSalone(g, imp.settimana, eccezioni);
@@ -156,6 +197,7 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
                         !
                       </i>
                     )}
+                    {daAssegnare(a, operatori) && <span className="etichetta gialla da-assegnare">⚠ da assegnare</span>}
                     <span className="tenue">{servizi(a)}</span>
                   </button>
                 ))}
@@ -173,7 +215,7 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
   const coloreDi = coloriClienti(lista);
   const salone = fasceSalone(giorno, imp.settimana, eccezioni);
   const ecc = eccezioni.find((e) => e.data === giorno);
-  const usati = new Set(lista.flatMap((a) => a.fasi.map((f) => f.staffId)));
+  const usati = new Set(lista.flatMap((a) => a.fasi.map((f) => colonnaDi(f.staffId))));
   const colonne = operatori.filter((o) => o.attivo || usati.has(o.id!));
   const senzaOp = usati.has(null);
 
@@ -293,7 +335,7 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
   const blocchi = (staffId: number | null) =>
     lista.flatMap((x) =>
       x.fasi.map((f, i) => {
-        if (f.staffId !== staffId || f.durata <= 0) return null;
+        if (colonnaDi(f.staffId) !== staffId || f.durata <= 0) return null;
         const colore = operatori.find((o) => o.id === staffId)?.colore ?? '#777';
         const mobile = f.tipo === 'lavoro';
         const c = clienti.find((k) => k.id === x.clientId);
@@ -306,7 +348,7 @@ export default function Agenda(p: { giorno: string; setGiorno: (g: string) => vo
         return (
           <button
             key={`${x.id}-${i}`}
-            className={`blocco ${f.tipo} ${x.stato} ${stato}`}
+            className={`blocco ${f.tipo} ${x.stato} ${stato}${staffId == null && f.tipo === 'lavoro' ? ' senza-op' : ''}`}
             style={{
               top: (f.inizio - da) * PX,
               height: f.durata * PX - 2,
@@ -383,6 +425,8 @@ Note: ${x.note.trim()}` : ''}`}
   return (
     <div className="pagina agenda">
       {testata}
+      {avvisoAssegnare}
+      {finestraAssegnare}
       {(!salone.length || ecc) && (
         <p className={esteso.length ? 'nota' : 'avviso'}>
           {salone.length
@@ -407,7 +451,7 @@ Note: ${x.note.trim()}` : ''}`}
               )}
             </div>
           ))}
-          {senzaOp && <div className="col-testa">Da assegnare</div>}
+          {senzaOp && <div className="col-testa da-assegnare">⚠ Da assegnare</div>}
 
           <div className="col-ore" style={{ height: altezza }}>
             {ore.map((o) => (

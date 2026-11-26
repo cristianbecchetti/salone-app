@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from './db';
-import { prossimaApertura } from './lib/slots';
+import { daAssegnare, prossimaApertura } from './lib/slots';
 import { passaFiltroDurata } from './lib/messaggi';
 import { oggi } from './lib/tempo';
 import Agenda from './pages/Agenda';
@@ -65,6 +65,11 @@ export default function App() {
       [giornoReminder, imp.reminderFiltro?.verso, imp.reminderFiltro?.minuti],
     ) ?? 0;
 
+  // appuntamenti da oggi in poi senza operatore: badge sulla voce Agenda
+  const operatori = useLiveQuery(() => db.operatori.toArray(), []) ?? [];
+  const daAssegnareN =
+    useLiveQuery(() => db.appuntamenti.where('data').aboveOrEqual(oggi()).toArray(), [])?.filter((a) => daAssegnare(a, operatori)).length ?? 0;
+
   // dimensione di testo e controlli in tutta l'app
   useEffect(() => {
     document.documentElement.style.setProperty('--scala', String(imp.scalaTesto ?? 1.2));
@@ -120,6 +125,11 @@ export default function App() {
             <span className="ico">{icona}</span>
             <span>{nome}</span>
             {p === 'reminder' && daInviare > 0 && <b className="badge">{daInviare}</b>}
+            {p === 'agenda' && daAssegnareN > 0 && (
+              <b className="badge avviso-badge" title={`${daAssegnareN} appuntamenti da assegnare`}>
+                {daAssegnareN}
+              </b>
+            )}
           </button>
         ))}
       </nav>

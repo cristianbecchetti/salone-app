@@ -282,3 +282,16 @@ export function primoSlot(slot: Slot[]): Slot | undefined {
     (x, y) => x.inizio - y.inizio || Number(unico(y)) - Number(unico(x)) || Number(y.haSkill) - Number(x.haSkill),
   )[0];
 }
+
+/**
+ * Fasi di lavoro senza operatore: non assegnate oppure assegnate a un operatore che non esiste più.
+ * `operatori` vuoto = elenco non ancora caricato: conta solo le fasi senza operatore.
+ */
+export function fasiDaAssegnare<T extends { tipo: TipoFase; durata: number; staffId: number | null }>(fasi: T[], operatori: { id?: number }[]): T[] {
+  const ids = new Set(operatori.map((o) => o.id));
+  return fasi.filter((f) => f.tipo === 'lavoro' && f.durata > 0 && (f.staffId == null || (operatori.length > 0 && !ids.has(f.staffId))));
+}
+
+/** Appuntamento ancora da svolgere (prenotato) con almeno una fase di lavoro senza operatore. */
+export const daAssegnare = (a: Appuntamento, operatori: { id?: number }[]) =>
+  a.stato === 'prenotato' && fasiDaAssegnare(a.fasi, operatori).length > 0;

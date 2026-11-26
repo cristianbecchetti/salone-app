@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Appuntamento, Fascia, Operatore } from '../types';
 import {
+  daAssegnare,
   orarioEsteso,
   unisci,
   fasceSalone,
@@ -326,5 +327,18 @@ describe('orari straordinari', () => {
 
   it('unisce le fasce che si toccano', () => {
     expect(unisci([{ da: h(15), a: h(19) }, { da: h(9), a: h(13) }, { da: h(19), a: h(21) }])).toEqual([{ da: h(9), a: h(13) }, { da: h(15), a: h(21) }]);
+  });
+});
+
+describe('appuntamenti da assegnare', () => {
+  const fase = (staffId: number | null, tipo: 'lavoro' | 'posa' = 'lavoro') => ({ serviceId: 1, servizio: 'S', nome: 'F', tipo, inizio: 600, durata: 30, staffId });
+  const a = (fasi: ReturnType<typeof fase>[], stato: Appuntamento['stato'] = 'prenotato'): Appuntamento => ({ clientId: 1, data: '2026-11-26', inizio: 600, fine: 660, stato, note: '', fasi });
+  const ops = [op(1), op(2)];
+  it('riconosce fasi di lavoro senza operatore o con operatore eliminato', () => {
+    expect(daAssegnare(a([fase(1), fase(null, 'posa')]), ops)).toBe(false);
+    expect(daAssegnare(a([fase(1), fase(null)]), ops)).toBe(true);
+    expect(daAssegnare(a([fase(9)]), ops)).toBe(true);
+    expect(daAssegnare(a([fase(9)]), [])).toBe(false);
+    expect(daAssegnare(a([fase(null)], 'annullato'), ops)).toBe(false);
   });
 });
