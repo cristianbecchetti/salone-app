@@ -481,3 +481,13 @@ button.blocca { margin-top: 0.75rem; color: var(--rosso); }
 .rubrica-righe select { max-width: 14rem; }
 .rubrica-righe .numero-rubrica { width: 10rem; font-variant-numeric: tabular-nums; }
 .rubrica-righe .etichetta { display: inline-block; margin: 0.25rem 0 0 0.25rem; }
+
+/* schede colore cartacee */
+.gruppo-foto { margin-top: 0.75rem; }
+.miniatura-foto { height: 6rem; border-radius: 0.5rem; border: 1px solid var(--bordo); display: block; }
+.testo-letto { white-space: pre-wrap; font-size: 0.8rem; background: var(--sfondo); padding: 0.5rem; border-radius: 0.5rem; max-height: 12rem; overflow: auto; }
+.ricetta-letta { border: 1px solid var(--bordo); border-radius: var(--raggio); padding: 0.625rem; margin: 0.625rem 0; display: flex; flex-direction: column; gap: 0.375rem; }
+.ricetta-letta.scelta { background: #f4fbf6; border-color: #bfe3cb; }
+.ricetta-letta .grammi { width: 4.5rem; }
+.ricetta-letta .ossigeno { width: 7rem; }
+.ricetta-letta .sulla-carta { margin: 0; font-size: 0.8rem; }

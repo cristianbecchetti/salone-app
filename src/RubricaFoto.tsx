@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { db } from './db';
 import type { Cliente } from './types';
 import { normalizzaTelefono } from './lib/contatti';
+import { erroreLettura, leggiTestoFoto } from './lib/ocr';
 import { estraiVoci, numeroPlausibile, proponi, type Proposta } from './lib/rubrica';
 import { Modale, nomeCliente } from './ui';
 
@@ -41,25 +42,10 @@ export default function RubricaFoto(p: { clienti: Cliente[]; prefisso: string; o
     setLettura({ pagina: 1, di: foto.length, perc: 0 });
     let testo = '';
     try {
-      const { createWorker } = await import('tesseract.js');
-      let pagina = 1;
-      const worker = await createWorker('ita', 1, {
-        logger: (m: { status: string; progress: number }) => {
-          if (m.status === 'recognizing text') setLettura({ pagina, di: foto.length, perc: Math.round(m.progress * 100) });
-        },
-      });
-      for (const f of foto) {
-        setLettura({ pagina, di: foto.length, perc: 0 });
-        const { data } = await worker.recognize(f);
-        testo += data.text + '\n';
-        pagina++;
-      }
-      await worker.terminate();
+      testo = (await leggiTestoFoto(foto, setLettura)).join('\n');
     } catch (e) {
       setLettura(null);
-      setErrore(
-        `Lettura non riuscita: ${e instanceof Error ? e.message : e}. La prima volta serve internet per scaricare il lettore di testo (circa 15 MB).`,
-      );
+      setErrore(erroreLettura(e));
       return;
     }
     setLettura(null);

@@ -17,6 +17,7 @@ import { appuntamentiDelMese, grammiTotali, parametriMese, serviziDi, testoMese,
 import { inviaWhatsApp, modoApi } from '../lib/whatsapp';
 import SchedaColoreEditor, { nuovaScheda } from '../SchedaColoreEditor';
 import RubricaFoto from '../RubricaFoto';
+import SchedeFoto from '../SchedeFoto';
 import { SceltaMese, Telefono } from '../scelte';
 import { Campo, Modale, nomeCliente } from '../ui';
 
@@ -32,6 +33,8 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
   const [cerca, setCerca] = useState('');
   const [scheda, setScheda] = useState<Cliente | null>(null);
   const [rubricaFoto, setRubricaFoto] = useState(false);
+  /** schede colore cartacee: 'tutti' = da più clienti, numero = della cliente aperta */
+  const [schedeFoto, setSchedeFoto] = useState<'tutti' | number | null>(null);
   const [importa, setImporta] = useState<DaImportare[] | null>(null);
   const [msg, setMsg] = useState('');
   const [doppio, setDoppio] = useState<{ testo: string; cliente: Cliente } | null>(null);
@@ -168,6 +171,7 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
         {rubricaDisponibile() && <button onClick={daRubrica}>Importa dalla rubrica</button>}
         <button onClick={() => file.current?.click()}>Importa file (vCard / CSV)</button>
         <button onClick={() => setRubricaFoto(true)}>📷 Numeri da rubrica cartacea</button>
+        <button onClick={() => setSchedeFoto('tutti')}>📷 Schede colore cartacee</button>
         <input ref={file} type="file" accept=".vcf,.csv,text/vcard,text/csv" hidden onChange={(e) => daFile(e.target.files?.[0])} />
         <button className="primario" onClick={() => apri({ ...VUOTO })}>
           + Cliente
@@ -296,6 +300,7 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
                 <button className="primario" onClick={() => setRicetta(nuovaScheda(scheda.id!, oggi(), schede[0]))}>
                   + Nuova scheda
                 </button>
+                <button onClick={() => setSchedeFoto(scheda.id!)}>📷 Da scheda cartacea</button>
               </div>
               {schede.map((r) => (
                 <button key={r.id} className="voce alta" onClick={() => setRicetta(r)}>
@@ -360,6 +365,17 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
         </Modale>
       )}
 
+      {/* dopo la scheda cliente: così compare sopra quando è aperta da lì */}
+      {schedeFoto != null && (
+        <SchedeFoto
+          clienti={clienti}
+          clientId={schedeFoto === 'tutti' ? undefined : schedeFoto}
+          onChiudi={(esito) => {
+            setSchedeFoto(null);
+            if (esito) setMsg(esito);
+          }}
+        />
+      )}
       {ricetta && <SchedaColoreEditor key={ricetta.id ?? 'nuova'} scheda={ricetta} onChiudi={() => setRicetta(null)} />}
 
       {importa && (

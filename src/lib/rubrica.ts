@@ -12,7 +12,7 @@ export interface VoceLetta {
 }
 
 /** Errori tipici dell'OCR dentro un numero: O→0, l/I/|→1, S→5, B→8, Z→2 */
-const correggiCifre = (s: string) =>
+export const correggiCifre = (s: string) =>
   s.replace(/[Oo]/g, '0').replace(/[lI|!]/g, '1').replace(/[S]/g, '5').replace(/[B]/g, '8').replace(/[Z]/g, '2');
 
 // sequenza che sembra un telefono: cifre (o lettere scambiate per cifre) con spazi, punti, trattini, barre
