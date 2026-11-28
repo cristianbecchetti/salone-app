@@ -16,6 +16,7 @@ import { dataNum, hm, oggi } from '../lib/tempo';
 import { appuntamentiDelMese, grammiTotali, parametriMese, serviziDi, testoMese, testoRicetta } from '../lib/messaggi';
 import { inviaWhatsApp, modoApi } from '../lib/whatsapp';
 import SchedaColoreEditor, { nuovaScheda } from '../SchedaColoreEditor';
+import RubricaFoto from '../RubricaFoto';
 import { SceltaMese, Telefono } from '../scelte';
 import { Campo, Modale, nomeCliente } from '../ui';
 
@@ -30,6 +31,7 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
   const clienti = useLiveQuery(() => db.clienti.toArray(), []) ?? [];
   const [cerca, setCerca] = useState('');
   const [scheda, setScheda] = useState<Cliente | null>(null);
+  const [rubricaFoto, setRubricaFoto] = useState(false);
   const [importa, setImporta] = useState<DaImportare[] | null>(null);
   const [msg, setMsg] = useState('');
   const [doppio, setDoppio] = useState<{ testo: string; cliente: Cliente } | null>(null);
@@ -165,6 +167,7 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
         <span className="spazio" />
         {rubricaDisponibile() && <button onClick={daRubrica}>Importa dalla rubrica</button>}
         <button onClick={() => file.current?.click()}>Importa file (vCard / CSV)</button>
+        <button onClick={() => setRubricaFoto(true)}>📷 Numeri da rubrica cartacea</button>
         <input ref={file} type="file" accept=".vcf,.csv,text/vcard,text/csv" hidden onChange={(e) => daFile(e.target.files?.[0])} />
         <button className="primario" onClick={() => apri({ ...VUOTO })}>
           + Cliente
@@ -186,6 +189,17 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
           </p>
         )}
       </div>
+
+      {rubricaFoto && (
+        <RubricaFoto
+          clienti={clienti}
+          prefisso={imp.prefisso}
+          onChiudi={(esito) => {
+            setRubricaFoto(false);
+            if (esito) setMsg(esito);
+          }}
+        />
+      )}
 
       {scheda && (
         <Modale
