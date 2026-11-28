@@ -45,8 +45,8 @@ describe('messaggi WhatsApp', () => {
     expect(testoMese(lista, maria, '2026-12', imp)).toBe(
       [
         'Ciao Maria, i tuoi appuntamenti di dicembre 2026 da Salone Bea:',
-        '• sabato 5 dicembre alle 10:00: Colore base, Piega (circa 2h)',
-        '• sabato 19 dicembre alle 15:00: Piega (circa 1h)',
+        '• sabato 5 dicembre alle 10:00: Colore base, Piega',
+        '• sabato 19 dicembre alle 15:00: Piega',
       ].join('\n'),
     );
   });

@@ -1,7 +1,7 @@
 // Testi dei messaggi WhatsApp e delle ricette colore. Funzioni pure, senza accesso al database.
 import type { Appuntamento, Cliente, Impostazioni, SchedaColore } from '../types';
 import { componiMessaggio } from './contatti';
-import { aData, dataLunga, hm, minuti } from './tempo';
+import { aData, dataLunga, hm } from './tempo';
 
 /** Nomi dei servizi di un appuntamento, senza ripetizioni, nell'ordine di esecuzione. */
 export const serviziDi = (a: Appuntamento) => [...new Set(a.fasi.map((f) => f.servizio))].join(', ');
@@ -36,7 +36,7 @@ export function appuntamentiDelMese(tutti: Appuntamento[], clientId: number, mes
     .sort((x, y) => x.data.localeCompare(y.data) || x.inizio - y.inizio);
 }
 
-/** Riepilogo di tutti gli appuntamenti del cliente nel mese, con i servizi e la durata. */
+/** Riepilogo di tutti gli appuntamenti del cliente nel mese, con i servizi (senza la durata). */
 export function testoMese(lista: Appuntamento[], c: Cliente | undefined, mese: string, imp: Impostazioni) {
   const intro = componiMessaggio(imp.messaggioMese ?? '', {
     nome: c?.nome ?? '',
@@ -45,7 +45,7 @@ export function testoMese(lista: Appuntamento[], c: Cliente | undefined, mese: s
   });
   const righe = lista.map((a) => {
     const giorno = aData(a.data).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
-    return `• ${giorno} alle ${hm(a.inizio)}: ${serviziDi(a)} (circa ${minuti(a.fine - a.inizio)})`;
+    return `• ${giorno} alle ${hm(a.inizio)}: ${serviziDi(a)}`;
   });
   return [intro, ...righe].join('\n');
 }
