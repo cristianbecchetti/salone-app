@@ -184,6 +184,7 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
           <button key={c.id} className="voce" onClick={() => apri(c)}>
             <strong>{nomeCliente(c)}</strong>
             {c.bloccato && <span className="etichetta bloccato">🚫 bloccato</span>}
+            {c.avvisaSempre && <span className="etichetta da-avvisare">🔔 da avvisare</span>}
             <span className="tenue">{c.telefono}</span>
           </button>
         ))}
@@ -269,6 +270,10 @@ export default function Clienti({ vai }: { vai: (r: Rotta) => void }) {
               <Campo etichetta="Note (preferenze, allergie…)">
                 <textarea rows={3} value={scheda.note} onChange={(e) => setScheda({ ...scheda, note: e.target.value })} />
               </Campo>
+              <label className="spunta avvisa-sempre">
+                <input type="checkbox" checked={!!scheda.avvisaSempre} onChange={(e) => setScheda({ ...scheda, avvisaSempre: e.target.checked })} />
+                🔔 Cliente da avvisare: compare sempre nei reminder, qualunque sia la durata del servizio
+              </label>
               {scheda.bloccato ? (
                 <div className="avviso stato-blocco">
                   <div className="riga a-capo">

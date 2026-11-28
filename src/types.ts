@@ -79,6 +79,8 @@ export interface Cliente {
   motivoBlocco?: string;
   /** data del blocco (AAAA-MM-GG) */
   bloccatoIl?: string;
+  /** cliente da avvisare sempre: i suoi appuntamenti compaiono nei reminder qualunque sia la durata */
+  avvisaSempre?: boolean;
 }
 
 export interface FaseApp {
@@ -104,6 +106,9 @@ export interface Appuntamento {
   stato: Stato;
   note: string;
   reminderInviatoIl?: string;
+  /** reminder per questo appuntamento: true = sempre, qualunque sia la durata; false = segue il filtro;
+   *  assente = come impostato sul cliente (avvisaSempre) */
+  avvisa?: boolean;
   /** il magazzino ha segnato il colore come preparato */
   preparatoIl?: string;
 }

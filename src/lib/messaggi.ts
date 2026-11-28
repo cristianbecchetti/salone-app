@@ -136,3 +136,9 @@ export function passaFiltroDurata(a: Appuntamento, f: FiltroDurata = FILTRO_DURA
   const d = durataAppuntamento(a);
   return f.verso === 'almeno' ? d >= f.minuti : d < f.minuti;
 }
+
+/** Cliente da avvisare: scelta fatta sull'appuntamento, altrimenti quella del cliente. */
+export const daAvvisare = (a: Appuntamento, c?: Cliente) => a.avvisa ?? !!c?.avvisaSempre;
+
+/** L'appuntamento compare nei reminder: cliente da avvisare (qualunque durata) oppure supera il filtro di durata. */
+export const inReminder = (a: Appuntamento, c: Cliente | undefined, f?: FiltroDurata) => daAvvisare(a, c) || passaFiltroDurata(a, f);

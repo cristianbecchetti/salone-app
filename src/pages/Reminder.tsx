@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from '../db';
 import type { Appuntamento } from '../types';
 import { componiMessaggio } from '../lib/contatti';
-import { FILTRO_DURATA_BASE, parametriAppuntamento, passaFiltroDurata, type FiltroDurata } from '../lib/messaggi';
+import { FILTRO_DURATA_BASE, daAvvisare, inReminder, parametriAppuntamento, type FiltroDurata } from '../lib/messaggi';
 import { inviaWhatsApp, modoApi } from '../lib/whatsapp';
 import type { Cliente } from '../types';
 import { dataLunga, hm, minuti, piuGiorni } from '../lib/tempo';
@@ -19,7 +19,8 @@ export default function Reminder({ predefinito }: { predefinito: string }) {
     .sort((a, b) => a.inizio - b.inizio);
   // filtro per durata (di base: almeno 1 ora); la scelta resta memorizzata
   const filtro = imp.reminderFiltro ?? FILTRO_DURATA_BASE;
-  const lista = delGiorno.filter((a) => passaFiltroDurata(a, filtro));
+  // i clienti da avvisare compaiono sempre, qualunque sia la durata
+  const lista = delGiorno.filter((a) => inReminder(a, clienti.find((c) => c.id === a.clientId), filtro));
   const esclusi = delGiorno.length - lista.length;
   const cambiaFiltro = (f: Partial<FiltroDurata>) => db.impostazioni.update('main', { reminderFiltro: { ...filtro, ...f } });
 
@@ -82,6 +83,7 @@ export default function Reminder({ predefinito }: { predefinito: string }) {
             ))}
           </select>
         )}
+        <span className="tenue">· i clienti 🔔 da avvisare compaiono sempre</span>
         {esclusi > 0 && (
           <span className="tenue">
             ({esclusi} {esclusi === 1 ? 'appuntamento escluso' : 'appuntamenti esclusi'} dal filtro)
@@ -109,6 +111,7 @@ export default function Reminder({ predefinito }: { predefinito: string }) {
                   {hm(a.inizio)} · {nomeCliente(c)}
                 </strong>
                 <span className="tenue"> {c?.telefono || 'senza numero'}</span>
+                {daAvvisare(a, c) && <span className="etichetta da-avvisare">🔔 cliente da avvisare</span>}
                 {!api && <p className="anteprima">{testo(a)}</p>}
                 {errori[a.id!] && <p className="avviso">{errori[a.id!]}</p>}
               </div>

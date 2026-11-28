@@ -62,6 +62,8 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
   const [note, setNote] = useState('');
   /** null = segue l'impostazione dei servizi scelti */
   const [invia, setInvia] = useState<boolean | null>(null);
+  // reminder: undefined = come impostato sul cliente; true/false = scelta per questo appuntamento
+  const [avvisa, setAvvisa] = useState<boolean | undefined>(undefined);
   const [originale, setOriginale] = useState<Appuntamento | null>(null);
   const [tutti, setTutti] = useState(false);
   const [filtroOp, setFiltroOp] = useState(0);
@@ -94,6 +96,7 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
       setInizio(a.inizio);
       setStato(a.stato);
       setNote(a.note);
+      setAvvisa(a.avvisa);
       setBozza(
         a.fasi.map((f) => {
           const def = sv.find((s) => s.id === f.serviceId)?.fasi.find((x) => x.nome === f.nome);
@@ -381,6 +384,7 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
       fasi,
       stato,
       note,
+      avvisa,
       reminderInviatoIl: spostato ? undefined : originale?.reminderInviatoIl,
     };
     if (id) a.id = id;
@@ -795,6 +799,15 @@ export default function Prenota({ id, pre, onFine, indietro = 'Agenda' }: { id?:
               />
               {id ? 'Invia la conferma aggiornata su WhatsApp' : 'Invia conferma su WhatsApp'}
               {cliente && !cliente.telefono && <span className="tenue">(il cliente non ha un cellulare)</span>}
+            </label>
+            <label className="spunta">
+              <input
+                type="checkbox"
+                checked={avvisa ?? !!cliente?.avvisaSempre}
+                onChange={(e) => setAvvisa(e.target.checked)}
+              />
+              🔔 Cliente da avvisare con il reminder, qualunque sia la durata
+              {avvisa === undefined && cliente?.avvisaSempre && <span className="tenue">(impostato sul cliente)</span>}
             </label>
             <div className="riga">
               <button className="primario grande" disabled={!pronto} onClick={salva}>

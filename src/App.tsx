@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, useImpostazioni } from './db';
 import { daAssegnare, prossimaApertura } from './lib/slots';
-import { passaFiltroDurata } from './lib/messaggi';
+import { inReminder } from './lib/messaggi';
 import { oggi } from './lib/tempo';
 import Agenda from './pages/Agenda';
 import Prenota, { type Pre } from './pages/Prenota';
@@ -56,12 +56,15 @@ export default function App() {
   const giornoReminder = prossimaApertura(oggi(), imp.settimana, eccezioni);
   const daInviare =
     useLiveQuery(
-      () =>
-        db.appuntamenti
+      async () => {
+        const lista = await db.appuntamenti
           .where('data')
           .equals(giornoReminder)
-          .filter((a) => a.stato === 'prenotato' && !a.reminderInviatoIl && passaFiltroDurata(a, imp.reminderFiltro))
-          .count(),
+          .filter((a) => a.stato === 'prenotato' && !a.reminderInviatoIl)
+          .toArray();
+        const clienti = await db.clienti.bulkGet(lista.map((a) => a.clientId));
+        return lista.filter((a, i) => inReminder(a, clienti[i], imp.reminderFiltro)).length;
+      },
       [giornoReminder, imp.reminderFiltro?.verso, imp.reminderFiltro?.minuti],
     ) ?? 0;
 

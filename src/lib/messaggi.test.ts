@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Appuntamento, Cliente, Impostazioni, SchedaColore } from '../types';
-import { appuntamentiDelMese, grammiTonalita, grammiTotali, passaFiltroDurata, ricettaPer, testoConferma, testoMese, testoPreparazione, testoRicetta } from './messaggi';
+import { appuntamentiDelMese, daAvvisare, inReminder, grammiTonalita, grammiTotali, passaFiltroDurata, ricettaPer, testoConferma, testoMese, testoPreparazione, testoRicetta } from './messaggi';
 
 const imp = {
   id: 'main',
@@ -123,5 +123,24 @@ describe('filtro per durata dei promemoria', () => {
     expect(passaFiltroDurata(lungo(150), { verso: 'almeno', minuti: 180 })).toBe(false);
     expect(passaFiltroDurata(lungo(180), { verso: 'almeno', minuti: 180 })).toBe(true);
     expect(passaFiltroDurata(lungo(10), { verso: 'tutti', minuti: 60 })).toBe(true);
+  });
+});
+
+describe('clienti da avvisare', () => {
+  const app = (durata: number, avvisa?: boolean): Appuntamento => ({ clientId: 1, data: '2026-12-01', inizio: 600, fine: 600 + durata, stato: 'prenotato', note: '', fasi: [], avvisa });
+  const normale = { nome: 'A', cognome: 'B', telefono: '', note: '' };
+  const sempre = { ...normale, avvisaSempre: true };
+  it("il flag del cliente vale se l'appuntamento non dice altro", () => {
+    expect(daAvvisare(app(30), sempre)).toBe(true);
+    expect(daAvvisare(app(30), normale)).toBe(false);
+    expect(daAvvisare(app(30, false), sempre)).toBe(false);
+    expect(daAvvisare(app(30, true), normale)).toBe(true);
+  });
+  it('i clienti da avvisare compaiono nei reminder qualunque sia la durata', () => {
+    const filtro = { verso: 'almeno' as const, minuti: 60 };
+    expect(inReminder(app(30), sempre, filtro)).toBe(true);
+    expect(inReminder(app(30), normale, filtro)).toBe(false);
+    expect(inReminder(app(90), normale, filtro)).toBe(true);
+    expect(inReminder(app(30, false), sempre, filtro)).toBe(false);
   });
 });
